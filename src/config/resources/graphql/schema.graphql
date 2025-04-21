@@ -20,18 +20,18 @@ schema {
   mutation: Mutation
 }
 
-"Funktionen, um Bücherdaten zu lesen"
+"Funktionen, um Haustierdaten zu lesen"
 type Query {
-  buecher(suchkriterien: SuchkriterienInput): [Buch!]
+  haustiere(suchkriterien: SuchkriterienInput): [Haustier!]
 
-  buch(id: ID!): Buch
+  haustier(id: ID!): Haustier
 }
 
-"Funktionen, um Bücher neu anzulegen, zu aktualisieren oder zu löschen"
+"Funktionen, um Haustiere neu anzulegen, zu aktualisieren oder zu löschen"
 type Mutation {
-  create(input: BuchInput!): CreatePayload
+  create(input: HaustierInput!): CreatePayload
 
-  update(input: BuchUpdateInput!): UpdatePayload
+  update(input: HaustierUpdateInput!): UpdatePayload
 
   delete(id: ID!): Boolean
 
@@ -40,96 +40,95 @@ type Mutation {
   refresh(refresh_token: String!): TokenResult
 }
 
-"Daten zum Titel eines Buches"
-type Titel {
-  titel: String!
-  untertitel: String
+"Daten zur Beschreibung eines Haustiers"
+type Beschreibung {
+  beschreibung: String!
+  haltungshinweise: String
 }
 
-"Daten zum Titel eines Buches"
-type Abbildung {
+"Daten zum Foto eines Haustiers"
+type Foto {
   beschriftung: String!
   contentType: String
 }
 
-"Datenschema zu einem Buch, das gelesen wird"
-type Buch {
+"Datenschema zu einem Haustier, das gelesen wird"
+type Haustier {
   # ID ist bei Apollo ein String
   id: Int!
   version: Int!
-  isbn: String!
-  rating: Int
+  name: String!
+  alter: Int
   art: Art
-  preis: Float!
-  lieferbar: Boolean
-  datum: String
-  homepage: String
+  gewicht: Float!
+  groesse: Float
+  vermittelt: Boolean
+  aufnahmedatum: String
+  rasse: String
   schlagwoerter: [String]
   # 1:1-Beziehung
-  titel: Titel!
-  # field mit @ResolveField
-  rabatt(short: Boolean): String!
+  beschreibung: Beschreibung!
 }
 
-"Enum-Typ für die Art eines Buches"
+"Enum-Typ für die Art eines Haustiers"
 enum Art {
-  EPUB
-  HARDCOVER
-  PAPERBACK
+  HUND
+  KATZE
+  KLEINTIER
 }
 
-"Suchkriterien für Bücher"
+"Suchkriterien für Haustiere"
 input SuchkriterienInput {
-  titel: String
-  isbn: String
-  rating: Int
+  beschreibung: String
+  name: String
+  alter: Int
   art: Art
-  lieferbar: Boolean
+  vermittelt: Boolean
 }
 
-"Daten zum Titel eines neuen Buches"
-input TitelInput {
-  titel: String!
-  untertitel: String
+"Daten zur Beschreibung eines neuen Haustiers"
+input BeschreibungInput {
+  beschreibung: String!
+  haltungshinweise: String
 }
 
-"Daten zu den Abbildungen eines Buches"
-input AbbildungInput {
+"Daten zu den Fotos eines Haustiers"
+input FotoInput {
   beschriftung: String!
   contentType: String!
 }
 
-"Daten für ein neues Buch"
-input BuchInput {
-  isbn: String
-  rating: Int
+"Daten für ein neues Haustier"
+input HaustierInput {
+  name: String
+  alter: Int
   art: Art
-  preis: Float
-  rabatt: Float
-  lieferbar: Boolean
-  datum: String
-  homepage: String
+  gewicht: Float
+  groesse: Float
+  vermittelt: Boolean
+  aufnahmedatum: String
+  rasse: String
   schlagwoerter: [String]
-  titel: TitelInput!
-  abbildungen: [AbbildungInput!]
+  beschreibung: BeschreibungInput!
+  fotos: [FotoInput!]
 }
 
 type CreatePayload {
   id: Int
 }
 
-"Daten für ein zu änderndes Buch"
-input BuchUpdateInput {
+"Daten für ein zu änderndes Haustier"
+input HaustierUpdateInput {
   id: ID
   version: Int
-  isbn: String
-  rating: Int
+  name: String
+  alter: Int
   art: Art
-  preis: Float
-  rabatt: Float
-  lieferbar: Boolean
-  datum: String
-  homepage: String
+  gewicht: Float
+  groesse: Float
+  vermittelt: Boolean
+  aufnahmedatum: String
+  rasse: String
   schlagwoerter: [String]
 }
 
