@@ -1,22 +1,7 @@
-// Copyright (C) 2023 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-import { Abbildung } from './abbildung.entity.js';
+import { Foto } from './foto.entity.js';
 import { Haustier } from './haustier.entity.js';
 import { HaustierFile } from './haustierFile.entity.js';
-import { Titel } from './titel.entity.js';
+import { Beschreibung } from './beschreibung.entity.js';
 
-// erforderlich in src/config/db.ts und src/buch/buch.module.ts
-export const entities = [Abbildung, Haustier, HaustierFile, Titel];
+// erforderlich in src/config/db.ts und src/haustier/haustier.module.ts
+export const entities = [Foto, Haustier, HaustierFile, Beschreibung];

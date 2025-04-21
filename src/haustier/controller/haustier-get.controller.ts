@@ -1,18 +1,3 @@
-// Copyright (C) 2021 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 /**
  * Das Modul besteht aus der Controller-Klasse für Lesen an der REST-Schnittstelle.
  * @packageDocumentation
@@ -47,8 +32,8 @@ import { Request, Response } from 'express';
 import { Public } from 'nest-keycloak-connect';
 import { Readable } from 'node:stream';
 import { ResponseTimeInterceptor } from '../../logger/response-time.interceptor.js';
-import { type Buch, type BuchArt } from '../entity/haustier.entity.js';
-import { BuchReadService } from '../service/buch-read.service.js';
+import { type Haustier, type HaustierArt } from '../entity/haustier.entity.js';
+import { HaustierReadService } from '../service/haustier-read.service.js';
 import { type Suchkriterien } from '../service/suchkriterien.js';
 import { createPage } from './page.js';
 import { createPageable } from '../service/pageable.js';
@@ -56,48 +41,48 @@ import { getLogger } from '../../logger/logger.js';
 import { paths } from '../../config/paths.js';
 
 /**
- * Klasse für `BuchGetController`, um Queries in _OpenAPI_ bzw. Swagger zu
- * formulieren. `BuchController` hat dieselben Properties wie die Basisklasse
- * `Buch` - allerdings mit dem Unterschied, dass diese Properties beim Ableiten
+ * Klasse für `HaustierGetController`, um Queries in _OpenAPI_ bzw. Swagger zu
+ * formulieren. `HaustierController` hat dieselben Properties wie die Basisklasse
+ * `Haustier` - allerdings mit dem Unterschied, dass diese Properties beim Ableiten
  * so überschrieben sind, dass sie auch nicht gesetzt bzw. undefined sein
  * dürfen, damit die Queries flexibel formuliert werden können. Deshalb ist auch
  * immer der zusätzliche Typ undefined erforderlich.
  * Außerdem muss noch `string` statt `Date` verwendet werden, weil es in OpenAPI
  * den Typ Date nicht gibt.
  */
-export class BuchQuery implements Suchkriterien {
+export class HaustierQuery implements Suchkriterien {
     @ApiProperty({ required: false })
-    declare readonly isbn?: string;
+    declare readonly name?: string;
 
     @ApiProperty({ required: false })
-    declare readonly rating?: number;
+    declare readonly alter?: number;
 
     @ApiProperty({ required: false })
-    declare readonly art?: BuchArt;
+    declare readonly art?: HaustierArt;
 
     @ApiProperty({ required: false })
-    declare readonly preis?: number;
+    declare readonly gewicht?: number;
 
     @ApiProperty({ required: false })
-    declare readonly rabatt?: number;
+    declare readonly groesse?: number;
 
     @ApiProperty({ required: false })
-    declare readonly lieferbar?: boolean;
+    declare readonly vermittelt?: boolean;
 
     @ApiProperty({ required: false })
-    declare readonly datum?: string;
+    declare readonly aufnahmedatum?: string;
 
     @ApiProperty({ required: false })
-    declare readonly homepage?: string;
+    declare readonly rasse?: string;
 
     @ApiProperty({ required: false })
-    declare readonly javascript?: string;
+    declare readonly verspielt?: string;
 
     @ApiProperty({ required: false })
-    declare readonly typescript?: string;
+    declare readonly ruhig?: string;
 
     @ApiProperty({ required: false })
-    declare readonly titel?: string;
+    declare readonly beschreibung?: string;
 
     @ApiProperty({ required: false })
     declare size?: string;
@@ -107,41 +92,32 @@ export class BuchQuery implements Suchkriterien {
 }
 
 /**
- * Die Controller-Klasse für die Verwaltung von Bücher.
+ * Die Controller-Klasse für die Verwaltung von Haustieren.
  */
-// Decorator in TypeScript, zur Standardisierung in ES vorgeschlagen (stage 3)
-// https://devblogs.microsoft.com/typescript/announcing-typescript-5-0-beta/#decorators
-// https://github.com/tc39/proposal-decorators
 @Controller(paths.rest)
 @UseInterceptors(ResponseTimeInterceptor)
-@ApiTags('Buch REST-API')
+@ApiTags('Haustier REST-API')
 // @ApiBearerAuth()
-// Klassen ab ES 2015
-export class BuchGetController {
-    // readonly in TypeScript, vgl. C#
-    // private ab ES 2019
-    readonly #service: BuchReadService;
+export class HaustierGetController {
+    readonly #service: HaustierReadService;
 
-    readonly #logger = getLogger(BuchGetController.name);
+    readonly #logger = getLogger(HaustierGetController.name);
 
-    // Dependency Injection (DI) bzw. Constructor Injection
-    // constructor(private readonly service: BuchReadService) {}
-    // https://github.com/tc39/proposal-type-annotations#omitted-typescript-specific-features-that-generate-code
-    constructor(service: BuchReadService) {
+    constructor(service: HaustierReadService) {
         this.#service = service;
     }
 
     /**
-     * Ein Buch wird asynchron anhand seiner ID als Pfadparameter gesucht.
+     * Ein Haustier wird asynchron anhand seiner ID als Pfadparameter gesucht.
      *
-     * Falls es ein solches Buch gibt und `If-None-Match` im Request-Header
-     * auf die aktuelle Version des Buches gesetzt war, wird der Statuscode
+     * Falls es ein solches Haustier gibt und `If-None-Match` im Request-Header
+     * auf die aktuelle Version des Haustiers gesetzt war, wird der Statuscode
      * `304` (`Not Modified`) zurückgeliefert. Falls `If-None-Match` nicht
      * gesetzt ist oder eine veraltete Version enthält, wird das gefundene
-     * Buch im Rumpf des Response als JSON-Datensatz mit Atom-Links für HATEOAS
+     * Haustier im Rumpf des Response als JSON-Datensatz mit Atom-Links für HATEOAS
      * und dem Statuscode `200` (`OK`) zurückgeliefert.
      *
-     * Falls es kein Buch zur angegebenen ID gibt, wird der Statuscode `404`
+     * Falls es kein Haustier zur angegebenen ID gibt, wird der Statuscode `404`
      * (`Not Found`) zurückgeliefert.
      *
      * @param id Pfad-Parameter `id`
@@ -151,10 +127,9 @@ export class BuchGetController {
      * @param res Leeres Response-Objekt von Express.
      * @returns Leeres Promise-Objekt.
      */
-    // eslint-disable-next-line max-params
     @Get(':id')
     @Public()
-    @ApiOperation({ summary: 'Suche mit der Buch-ID' })
+    @ApiOperation({ summary: 'Suche mit der Haustier-ID' })
     @ApiParam({
         name: 'id',
         description: 'Z.B. 1',
@@ -164,11 +139,11 @@ export class BuchGetController {
         description: 'Header für bedingte GET-Requests, z.B. "0"',
         required: false,
     })
-    @ApiOkResponse({ description: 'Das Buch wurde gefunden' })
-    @ApiNotFoundResponse({ description: 'Kein Buch zur ID gefunden' })
+    @ApiOkResponse({ description: 'Das Haustier wurde gefunden' })
+    @ApiNotFoundResponse({ description: 'Kein Haustier zur ID gefunden' })
     @ApiResponse({
         status: HttpStatus.NOT_MODIFIED,
-        description: 'Das Buch wurde bereits heruntergeladen',
+        description: 'Das Haustier wurde bereits heruntergeladen',
     })
     async getById(
         @Param(
@@ -179,7 +154,7 @@ export class BuchGetController {
         @Req() req: Request,
         @Headers('If-None-Match') version: string | undefined,
         @Res() res: Response,
-    ): Promise<Response<Buch | undefined>>{
+    ): Promise<Response<Haustier | undefined>>{
         this.#logger.debug('getById: id=%s, version=%s', id, version);
 
         if (req.accepts(['json', 'html']) === false) {
@@ -187,14 +162,14 @@ export class BuchGetController {
             return res.sendStatus(HttpStatus.NOT_ACCEPTABLE);
         }
 
-        const buch = await this.#service.findById({ id });
+        const haustier = await this.#service.findById({ id });
         if (this.#logger.isLevelEnabled('debug')) {
-            this.#logger.debug('getById(): buch=%s', buch.toString());
-            this.#logger.debug('getById(): titel=%o', buch.titel);
+            this.#logger.debug('getById(): haustier=%s', haustier.toString());
+            this.#logger.debug('getById(): beschreibung=%o', haustier.beschreibung);
         }
 
         // ETags
-        const versionDb = buch.version;
+        const versionDb = haustier.version;
         if (version === `"${versionDb}"`) {
             this.#logger.debug('getById: NOT_MODIFIED');
             return res.sendStatus(HttpStatus.NOT_MODIFIED);
@@ -202,20 +177,20 @@ export class BuchGetController {
         this.#logger.debug('getById: versionDb=%s', versionDb);
         res.header('ETag', `"${versionDb}"`);
 
-        this.#logger.debug('getById: buch=%o', buch);
-        return res.json(buch);
+        this.#logger.debug('getById: haustier=%o', haustier);
+        return res.json(haustier);
     }
 
     /**
-     * Bücher werden mit Query-Parametern asynchron gesucht. Falls es mindestens
-     * ein solches Buch gibt, wird der Statuscode `200` (`OK`) gesetzt. Im Rumpf
-     * des Response ist das JSON-Array mit den gefundenen Büchern, die jeweils
+     * Haustiere werden mit Query-Parametern asynchron gesucht. Falls es mindestens
+     * ein solches Haustier gibt, wird der Statuscode `200` (`OK`) gesetzt. Im Rumpf
+     * des Response ist das JSON-Array mit den gefundenen Haustieren, die jeweils
      * um Atom-Links für HATEOAS ergänzt sind.
      *
-     * Falls es kein Buch zu den Suchkriterien gibt, wird der Statuscode `404`
+     * Falls es kein Haustier zu den Suchkriterien gibt, wird der Statuscode `404`
      * (`Not Found`) gesetzt.
      *
-     * Falls es keine Query-Parameter gibt, werden alle Bücher ermittelt.
+     * Falls es keine Query-Parameter gibt, werden alle Haustiere ermittelt.
      *
      * @param query Query-Parameter von Express.
      * @param req Request-Objekt von Express.
@@ -225,12 +200,12 @@ export class BuchGetController {
     @Get()
     @Public()
     @ApiOperation({ summary: 'Suche mit Suchkriterien' })
-    @ApiOkResponse({ description: 'Eine evtl. leere Liste mit Büchern' })
+    @ApiOkResponse({ description: 'Eine evtl. leere Liste mit Haustieren' })
     async get(
-        @Query() query: BuchQuery,
+        @Query() query: HaustierQuery,
         @Req() req: Request,
         @Res() res: Response,
-    ): Promise<Response<Buch[] | undefined>> {
+    ): Promise<Response<Haustier[] | undefined>> {
         this.#logger.debug('get: query=%o', query);
 
         if (req.accepts(['json', 'html']) === false) {
@@ -243,7 +218,7 @@ export class BuchGetController {
         delete query['size'];
         this.#logger.debug('get: page=%s, size=%s', page, size);
 
-        const keys = Object.keys(query) as (keyof BuchQuery)[];
+        const keys = Object.keys(query) as (keyof HaustierQuery)[];
         keys.forEach((key) => {
             if (query[key] === undefined) {
                 delete query[key];
@@ -252,42 +227,42 @@ export class BuchGetController {
         this.#logger.debug('get: query=%o', query);
 
         const pageable = createPageable({ number: page, size });
-        const buecherSlice = await this.#service.find(query, pageable);
-        const buchPage = createPage(buecherSlice, pageable);
-        this.#logger.debug('get: buchPage=%o', buchPage);
+        const haustiereSlice = await this.#service.find(query, pageable);
+        const haustierPage = createPage(haustiereSlice, pageable);
+        this.#logger.debug('get: haustierPage=%o', haustierPage);
 
-        return res.json(buchPage).send();
+        return res.json(haustierPage).send();
     }
 
     @Get('/file/:id')
     @Public()
-    @ApiOperation({ description: 'Suche nach Datei mit der Buch-ID' })
+    @ApiOperation({ description: 'Suche nach Datei mit der Haustier-ID' })
     @ApiParam({
         name: 'id',
         description: 'Z.B. 1',
     })
-    @ApiNotFoundResponse({ description: 'Keine Datei zur Buch-ID gefunden' })
+    @ApiNotFoundResponse({ description: 'Keine Datei zur Haustier-ID gefunden' })
     @ApiOkResponse({ description: 'Die Datei wurde gefunden' })
     async getFileById(
         @Param('id') idStr: number,
         @Res({ passthrough: true }) res: Response,
     ) {
-        this.#logger.debug('getFileById: buchId:%s', idStr);
+        this.#logger.debug('getFileById: haustierId:%s', idStr);
 
         const id = Number(idStr);
         if (!Number.isInteger(id)) {
             this.#logger.debug('getById: not isInteger()');
-            throw new NotFoundException(`Die Buch-ID ${idStr} ist ungueltig.`);
+            throw new NotFoundException(`Die Haustier-ID ${idStr} ist ungueltig.`);
         }
 
-        const buchFile = await this.#service.findFileByBuchId(id);
-        if (buchFile?.data === undefined) {
+        const haustierFile = await this.#service.findFileByHaustierId(id);
+        if (haustierFile?.data === undefined) {
             throw new NotFoundException('Keine Datei gefunden.');
         }
 
-        const stream = Readable.from(buchFile.data);
-        res.contentType(buchFile.mimetype ?? 'image/png').set({
-            'Content-Disposition': `inline; filename="${buchFile.filename}"`, // eslint-disable-line @typescript-eslint/naming-convention
+        const stream = Readable.from(haustierFile.data);
+        res.contentType(haustierFile.mimetype ?? 'image/png').set({
+            'Content-Disposition': `inline; filename="${haustierFile.filename}"`, 
         });
 
         return new StreamableFile(stream);

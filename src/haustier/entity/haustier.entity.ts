@@ -1,44 +1,10 @@
-// Copyright (C) 2016 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// Nest unterstützt verschiedene Werkzeuge fuer OR-Mapping
-// https://docs.nestjs.com/techniques/database
-//  * TypeORM     https://typeorm.io
-//  * Sequelize   https://sequelize.org
-//  * Knex        https://knexjs.org
-
-// TypeORM unterstützt die Patterns
-//  * "Data Mapper" und orientiert sich an Hibernate (Java), Doctrine (PHP) und Entity Framework (C#)
-//  * "Active Record" und orientiert sich an Mongoose (JavaScript)
-
-// TypeORM unterstützt u.a. die DB-Systeme
-//  * Postgres
-//  * MySQL
-//  * SQLite durch sqlite3 und better-sqlite3
-//  * Oracle
-//  * Microsoft SQL Server
-//  * SAP Hana
-//  * Cloud Spanner von Google
-
 /**
  * Das Modul besteht aus der Entity-Klasse.
  * @packageDocumentation
  */
 
 import { ApiProperty } from '@nestjs/swagger';
-import Decimal from 'decimal.js'; // eslint-disable-line @typescript-eslint/naming-convention
+import Decimal from 'decimal.js'; 
 import {
     Column,
     CreateDateColumn,
@@ -50,28 +16,25 @@ import {
     VersionColumn,
 } from 'typeorm';
 import { dbType } from '../../config/db.js';
-import { Abbildung } from './abbildung.entity.js';
+import { Foto } from './foto.entity.js';
 import { HaustierFile } from './haustierFile.entity.js';
 import { DecimalTransformer } from './decimal-transformer.js';
-import { Titel } from './titel.entity.js';
+import { Beschreibung } from './beschreibung.entity.js';
 
 /**
- * Alias-Typ für gültige Strings bei der Art eines Buches.
+ * Alias-Typ für gültige Strings bei der Art eines Haustiers.
  */
-export type BuchArt = 'EPUB' | 'HARDCOVER' | 'PAPERBACK';
+export type HaustierArt = 'HUND' | 'KATZE' | 'KLEINTIER';
 
 /**
  * Entity-Klasse zu einer relationalen Tabelle.
  * BEACHTE: Jede Entity-Klasse muss in einem JSON-Array deklariert sein, das in
  * TypeOrmModule.forFeature(...) verwendet wird.
- * Im Beispiel ist das JSON-Array in src\buch\entity\entities.ts und
- * TypeOrmModule.forFeature(...) wird in src\buch\buch.module.ts aufgerufen.
+ * Im Beispiel ist das JSON-Array in src\haustier\entity\entities.ts und
+ * TypeOrmModule.forFeature(...) wird in src\haustier\haustier.module.ts aufgerufen.
  */
-// https://typeorm.io/entities
 @Entity()
 export class Haustier {
-    // https://typeorm.io/entities#primary-columns
-    // default: strategy = 'increment' (SEQUENCE, GENERATED ALWAYS AS IDENTITY, AUTO_INCREMENT)
     @PrimaryGeneratedColumn()
     id: number | undefined;
 
@@ -79,75 +42,63 @@ export class Haustier {
     readonly version: number | undefined;
 
     @Column('varchar')
-    @ApiProperty({ example: '0-0070-0644-6', type: String })
-    readonly isbn: string | undefined;
+    @ApiProperty({ example: 'Luna', type: String })
+    readonly name: string | undefined;
 
     @Column('int')
     @ApiProperty({ example: 5, type: Number })
-    readonly rating: number | undefined;
+    readonly alter: number | undefined;
 
     @Column('varchar')
-    @ApiProperty({ example: 'EPUB', type: String })
-    readonly art: BuchArt | undefined;
+    @ApiProperty({ example: 'HUND', type: String })
+    readonly art: HaustierArt | undefined;
 
-    // TypeORM liest Gleitkommazahlen als String: Rundungsfehler vermeiden
     @Column('decimal', {
-        precision: 8,
+        precision: 5,
         scale: 2,
-        // https://typeorm.io/entities#column-options
         transformer: new DecimalTransformer(),
     })
-    @ApiProperty({ example: 1, type: Number })
-    // Decimal aus decimal.js analog zu BigDecimal von Java
-    readonly preis: Decimal | undefined;
+    @ApiProperty({ example: 30.55, type: Number })
+    readonly gewicht: Decimal | undefined;
 
     @Column('decimal', {
-        precision: 4,
-        scale: 3,
+        precision: 5,
+        scale: 2,
         transformer: new DecimalTransformer(),
     })
-    @ApiProperty({ example: 0.1, type: Number })
-    readonly rabatt: Decimal | undefined;
+    @ApiProperty({ example: 23.45, type: Number })
+    readonly groesse: Decimal | undefined;
 
-    @Column('decimal') // TypeORM unterstuetzt bei Oracle *NICHT* den Typ boolean
+    @Column('decimal')
     @ApiProperty({ example: true, type: Boolean })
-    readonly lieferbar: boolean | undefined;
+    readonly vermittelt: boolean | undefined;
 
     @Column('date')
     @ApiProperty({ example: '2021-01-31' })
-    // TypeORM unterstuetzt *NICHT* das Temporal-API (ES2022)
-    readonly datum: Date | string | undefined;
+    readonly aufnahmedatum: Date | string | undefined;
 
     @Column('varchar')
-    @ApiProperty({ example: 'https://test.de/', type: String })
-    readonly homepage: string | undefined;
+    @ApiProperty({ example: 'Labrador', type: String })
+    readonly rasse: string | undefined;
 
-    // https://typeorm.io/entities#simple-array-column-type
-    // nicht "readonly": null ersetzen durch []
     @Column('simple-array')
     schlagwoerter: string[] | null | undefined;
 
-    // undefined wegen Updates
-    @OneToOne(() => Titel, (titel) => titel.buch, {
+    @OneToOne(() => Beschreibung, (beschreibung) => beschreibung.haustier, {
         cascade: ['insert', 'remove'],
     })
-    readonly titel: Titel | undefined;
+    readonly beschreibung: Beschreibung | undefined;
 
-    // undefined wegen Updates
-    @OneToMany(() => Abbildung, (abbildung) => abbildung.buch, {
+    @OneToMany(() => Foto, (foto) => foto.haustier, {
         cascade: ['insert', 'remove'],
     })
-    readonly abbildungen: Abbildung[] | undefined;
+    readonly fotos: Foto[] | undefined;
 
-    @OneToOne(() => HaustierFile, (buchFile) => buchFile.buch, {
+    @OneToOne(() => HaustierFile, (haustierFile) => haustierFile.haustier, {
         cascade: ['insert', 'remove'],
     })
     readonly file: HaustierFile | undefined;
 
-    // https://typeorm.io/entities#special-columns
-    // https://typeorm.io/entities#column-types-for-postgres
-    // https://typeorm.io/entities#column-types-for-mysql--mariadb
-    // https://typeorm.io/entities#column-types-for-sqlite--cordova--react-native--expo
     @CreateDateColumn({
         type: dbType === 'sqlite' ? 'datetime' : 'timestamp',
     })
@@ -162,14 +113,14 @@ export class Haustier {
         JSON.stringify({
             id: this.id,
             version: this.version,
-            isbn: this.isbn,
-            rating: this.rating,
+            name: this.name,
+            alter: this.alter,
             art: this.art,
-            preis: this.preis,
-            rabatt: this.rabatt,
-            lieferbar: this.lieferbar,
-            datum: this.datum,
-            homepage: this.homepage,
+            gewicht: this.gewicht,
+            groesse: this.groesse,
+            vermittelt: this.vermittelt,
+            aufnahmedatum: this.aufnahmedatum,
+            rasse: this.rasse,
             schlagwoerter: this.schlagwoerter,
             erzeugt: this.erzeugt,
             aktualisiert: this.aktualisiert,

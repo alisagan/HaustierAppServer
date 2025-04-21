@@ -1,18 +1,3 @@
-// Copyright (C) 2016 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 /**
  * Das Modul besteht aus der Klasse {@linkcode QueryBuilder}.
  * @packageDocumentation
@@ -23,194 +8,161 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { typeOrmModuleOptions } from '../../config/typeormOptions.js';
 import { getLogger } from '../../logger/logger.js';
-import { Abbildung } from '../entity/abbildung.entity.js';
-import { Buch } from '../entity/haustier.entity.js';
+import { Foto } from '../entity/foto.entity.js';
+import { Haustier } from '../entity/haustier.entity.js';
 import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE } from './pageable.js';
 import { type Pageable } from './pageable.js';
-import { Titel } from '../entity/titel.entity.js';
+import { Beschreibung } from '../entity/beschreibung.entity.js';
 import { type Suchkriterien } from './suchkriterien.js';
 
-/** Typdefinitionen für die Suche mit der Buch-ID. */
+/** Typdefinitionen für die Suche mit der Haustier-ID. */
 export type BuildIdParams = {
-    /** ID des gesuchten Buchs. */
+    /** ID des gesuchten Haustiers. */
     readonly id: number;
-    /** Sollen die Abbildungen mitgeladen werden? */
-    readonly mitAbbildungen?: boolean;
+    /** Sollen die Fotos mitgeladen werden? */
+    readonly mitFotos?: boolean;
 };
 /**
- * Die Klasse `QueryBuilder` implementiert das Lesen für Bücher und greift
+ * Die Klasse `QueryBuilder` implementiert das Lesen für Haustiere und greift
  * mit _TypeORM_ auf eine relationale DB zu.
  */
 @Injectable()
 export class QueryBuilder {
-    readonly #buchAlias = `${Buch.name
+    readonly #haustierAlias = `${Haustier.name
         .charAt(0)
-        .toLowerCase()}${Buch.name.slice(1)}`;
+        .toLowerCase()}${Haustier.name.slice(1)}`;
 
-    readonly #titelAlias = `${Titel.name
+    readonly #beschreibungAlias = `${Beschreibung.name
         .charAt(0)
-        .toLowerCase()}${Titel.name.slice(1)}`;
+        .toLowerCase()}${Beschreibung.name.slice(1)}`;
 
-    readonly #abbildungAlias = `${Abbildung.name
+    readonly #fotoAlias = `${Foto.name
         .charAt(0)
-        .toLowerCase()}${Abbildung.name.slice(1)}`;
+        .toLowerCase()}${Foto.name.slice(1)}`;
 
-    readonly #repo: Repository<Buch>;
+    readonly #repo: Repository<Haustier>;
 
     readonly #logger = getLogger(QueryBuilder.name);
 
-    constructor(@InjectRepository(Buch) repo: Repository<Buch>) {
+    constructor(@InjectRepository(Haustier) repo: Repository<Haustier>) {
         this.#repo = repo;
     }
 
     /**
-     * Ein Buch mit der ID suchen.
-     * @param id ID des gesuchten Buches
+     * Ein Haustier mit der ID suchen.
+     * @param id ID des gesuchten Haustiers
      * @returns QueryBuilder
      */
-    buildId({ id, mitAbbildungen = false }: BuildIdParams) {
-        // QueryBuilder "buch" fuer Repository<Buch>
-        const queryBuilder = this.#repo.createQueryBuilder(this.#buchAlias);
+    buildId({ id, mitFotos: mitFotos = false }: BuildIdParams) {
+        // QueryBuilder "haustier" fuer Repository<Haustier>
+        const queryBuilder = this.#repo.createQueryBuilder(this.#haustierAlias);
 
-        // Fetch-Join: aus QueryBuilder "buch" die Property "titel" ->  Tabelle "titel"
+        // Fetch-Join: aus QueryBuilder "haustier" die Property "beschreibung" ->  Tabelle "beschreibung"
         queryBuilder.innerJoinAndSelect(
-            `${this.#buchAlias}.titel`,
-            this.#titelAlias,
+            `${this.#haustierAlias}.beschreibung`,
+            this.#beschreibungAlias,
         );
 
-        if (mitAbbildungen) {
-            // Fetch-Join: aus QueryBuilder "buch" die Property "abbildungen" -> Tabelle "abbildung"
+        if (mitFotos) {
+            // Fetch-Join: aus QueryBuilder "haustier" die Property "fotos" -> Tabelle "foto"
             queryBuilder.leftJoinAndSelect(
-                `${this.#buchAlias}.abbildungen`,
-                this.#abbildungAlias,
+                `${this.#haustierAlias}.fotos`,
+                this.#fotoAlias,
             );
         }
 
-        queryBuilder.where(`${this.#buchAlias}.id = :id`, { id: id }); // eslint-disable-line object-shorthand
+        queryBuilder.where(`${this.#haustierAlias}.id = :id`, { id: id }); 
         return queryBuilder;
     }
 
     /**
-     * Bücher asynchron suchen.
-     * @param suchkriterien JSON-Objekt mit Suchkriterien. Bei "titel" wird mit
-     * einem Teilstring gesucht, bei "rating" mit einem Mindestwert, bei "preis"
+     * Haustiere asynchron suchen.
+     * @param suchkriterien JSON-Objekt mit Suchkriterien. Bei "beschreibung" wird mit
+     * einem Teilstring gesucht, bei "alter" mit einem Mindestwert, bei "gewicht"
      * mit der Obergrenze.
      * @param pageable Maximale Anzahl an Datensätzen und Seitennummer.
      * @returns QueryBuilder
      */
-    // z.B. { titel: 'a', rating: 5, preis: 22.5, javascript: true }
-    // "rest properties" fuer anfaengliche WHERE-Klausel: ab ES 2018 https://github.com/tc39/proposal-object-rest-spread
-    // eslint-disable-next-line max-lines-per-function, prettier/prettier, sonarjs/cognitive-complexity
+    // z.B. { beschreibung: 'a', alter: 5, groesse: 22.5, verspielt: true }
     build(
         {
             // NOSONAR
-            titel,
-            rating,
-            preis,
-            javascript,
-            typescript,
-            java,
-            python,
+            beschreibung,
+            alter,
+            gewicht,
+            verspielt,
+            ruhig,
             ...restProps
         }: Suchkriterien,
         pageable: Pageable,
     ) {
         this.#logger.debug(
-            'build: titel=%s, rating=%s, preis=%s, javascript=%s, typescript=%s, java=%s, python=%s, restProps=%o, pageable=%o',
-            titel,
-            rating,
-            preis,
-            javascript,
-            typescript,
-            java,
-            python,
+            'build: beschreibung=%s, alter=%s, gewicht=%s, verspielt=%s, ruhig=%s, restProps=%o, pageable=%o',
+            beschreibung,
+            alter,
+            gewicht,
+            verspielt,
+            ruhig,
             restProps,
             pageable,
         );
 
-        let queryBuilder = this.#repo.createQueryBuilder(this.#buchAlias);
-        queryBuilder.innerJoinAndSelect(`${this.#buchAlias}.titel`, 'titel');
+        let queryBuilder = this.#repo.createQueryBuilder(this.#haustierAlias);
+        queryBuilder.innerJoinAndSelect(`${this.#haustierAlias}.beschreibung`, 'beschreibung');
 
-        // z.B. { titel: 'a', rating: 5, javascript: true }
-        // "rest properties" fuer anfaengliche WHERE-Klausel: ab ES 2018 https://github.com/tc39/proposal-object-rest-spread
-        // type-coverage:ignore-next-line
-        // const { titel, javascript, typescript, ...otherProps } = suchkriterien;
+        // z.B. { beschreibung: 'a', alter: 5, verspielt: true }
+        // const { beschreibung, verspielt, ruhig, ...otherProps } = suchkriterien;
 
         let useWhere = true;
 
-        // Titel in der Query: Teilstring des Titels und "case insensitive"
-        // CAVEAT: MySQL hat keinen Vergleich mit "case insensitive"
-        // type-coverage:ignore-next-line
-        if (titel !== undefined && typeof titel === 'string') {
+        // Beschreibung in der Query: Teilstring der Beschreibung und "case insensitive"
+        if (beschreibung !== undefined && typeof beschreibung === 'string') {
             const ilike =
                 typeOrmModuleOptions.type === 'postgres' ? 'ilike' : 'like';
             queryBuilder = queryBuilder.where(
-                `${this.#titelAlias}.titel ${ilike} :titel`,
-                { titel: `%${titel}%` },
+                `${this.#beschreibungAlias}.beschreibung ${ilike} :beschreibung`,
+                { beschreibung: `%${beschreibung}%` },
             );
             useWhere = false;
         }
 
-        if (rating !== undefined) {
-            const ratingNumber =
-                typeof rating === 'string' ? parseInt(rating) : rating;
-            if (!isNaN(ratingNumber)) {
+        if (alter !== undefined) {
+            const alterNumber =
+                typeof alter === 'string' ? parseInt(alter) : alter;
+            if (!isNaN(alterNumber)) {
                 queryBuilder = queryBuilder.where(
-                    `${this.#buchAlias}.rating >= ${ratingNumber}`,
+                    `${this.#haustierAlias}.alter >= ${alterNumber}`,
                 );
                 useWhere = false;
             }
         }
 
-        if (preis !== undefined && typeof preis === 'string') {
-            const preisNumber = Number(preis);
+        if (gewicht !== undefined && typeof gewicht === 'string') {
+            const gewichtNumber = Number(gewicht);
             queryBuilder = queryBuilder.where(
-                `${this.#buchAlias}.preis <= ${preisNumber}`,
+                `${this.#haustierAlias}.gewicht <= ${gewichtNumber}`,
             );
             useWhere = false;
         }
 
-        if (javascript === 'true') {
+        if (verspielt === 'true') {
             queryBuilder = useWhere
                 ? queryBuilder.where(
-                      `${this.#buchAlias}.schlagwoerter like '%JAVASCRIPT%'`,
+                      `${this.#haustierAlias}.schlagwoerter like '%VERSPIELT%'`,
                   )
                 : queryBuilder.andWhere(
-                      `${this.#buchAlias}.schlagwoerter like '%JAVASCRIPT%'`,
+                      `${this.#haustierAlias}.schlagwoerter like '%VERSPIELT'`,
                   );
             useWhere = false;
         }
 
-        if (typescript === 'true') {
+        if (ruhig === 'true') {
             queryBuilder = useWhere
                 ? queryBuilder.where(
-                      `${this.#buchAlias}.schlagwoerter like '%TYPESCRIPT%'`,
+                      `${this.#haustierAlias}.schlagwoerter like '%RUHIG%'`,
                   )
                 : queryBuilder.andWhere(
-                      `${this.#buchAlias}.schlagwoerter like '%TYPESCRIPT%'`,
-                  );
-            useWhere = false;
-        }
-
-        // Bei "JAVA" sollen Ergebnisse mit "JAVASCRIPT" _nicht_ angezeigt werden
-        if (java === 'true') {
-            queryBuilder = useWhere
-                ? queryBuilder.where(
-                      `REPLACE(${this.#buchAlias}.schlagwoerter, 'JAVASCRIPT', '') like '%JAVA%'`,
-                  )
-                : queryBuilder.andWhere(
-                      `REPLACE(${this.#buchAlias}.schlagwoerter, 'JAVASCRIPT', '') like '%JAVA%'`,
-                  );
-            useWhere = false;
-        }
-
-        if (python === 'true') {
-            queryBuilder = useWhere
-                ? queryBuilder.where(
-                      `${this.#buchAlias}.schlagwoerter like '%PYTHON%'`,
-                  )
-                : queryBuilder.andWhere(
-                      `${this.#buchAlias}.schlagwoerter like '%PYTHON%'`,
+                      `${this.#haustierAlias}.schlagwoerter like '%RUHIG%'`,
                   );
             useWhere = false;
         }
@@ -218,14 +170,14 @@ export class QueryBuilder {
         // Restliche Properties als Key-Value-Paare: Vergleiche auf Gleichheit
         Object.entries(restProps).forEach(([key, value]) => {
             const param: Record<string, any> = {};
-            param[key] = value; // eslint-disable-line security/detect-object-injection
+            param[key] = value; 
             queryBuilder = useWhere
                 ? queryBuilder.where(
-                      `${this.#buchAlias}.${key} = :${key}`,
+                      `${this.#haustierAlias}.${key} = :${key}`,
                       param,
                   )
                 : queryBuilder.andWhere(
-                      `${this.#buchAlias}.${key} = :${key}`,
+                      `${this.#haustierAlias}.${key} = :${key}`,
                       param,
                   );
             useWhere = false;

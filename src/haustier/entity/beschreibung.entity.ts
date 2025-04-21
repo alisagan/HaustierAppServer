@@ -5,31 +5,27 @@ import {
     OneToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { binaryType } from '../../config/db.js';
 import { Haustier } from './haustier.entity.js';
 
 @Entity()
-export class HaustierFile {
+export class Beschreibung {
     @PrimaryGeneratedColumn()
     id: number | undefined;
 
     @Column('varchar')
-    filename: string | undefined;
+    readonly beschreibung!: string | undefined;
 
     @Column('varchar')
-    mimetype: string | undefined;
+    readonly haltungshinweise: string | undefined;
 
-    @OneToOne(() => Haustier, (haustier) => haustier.file)
+    @OneToOne(() => Haustier, (haustier) => haustier.beschreibung)
     @JoinColumn({ name: 'haustier_id' })
     haustier: Haustier | undefined;
-
-    @Column({ type: binaryType })
-    data: Uint8Array | undefined;
 
     public toString = (): string =>
         JSON.stringify({
             id: this.id,
-            filename: this.filename,
-            mimetype: this.mimetype,
+            beschreibung: this.beschreibung,
+            haltungshinweise: this.haltungshinweise,
         });
 }

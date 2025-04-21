@@ -1,20 +1,5 @@
-// Copyright (C) 2016 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 /**
- * Das Modul besteht aus der Klasse {@linkcode BuchReadService}.
+ * Das Modul besteht aus der Klasse {@linkcode HaustierReadService}.
  * @packageDocumentation
  */
 
@@ -23,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { getLogger } from '../../logger/logger.js';
 import { HaustierFile } from '../entity/haustierFile.entity.js';
-import { Buch } from '../entity/haustier.entity.js';
+import { Haustier } from '../entity/haustier.entity.js';
 import { type Pageable } from './pageable.js';
 import { type Slice } from './slice.js';
 import { QueryBuilder } from './query-builder.js';
@@ -33,34 +18,34 @@ import { type Suchkriterien } from './suchkriterien.js';
  * Typdefinition für `findById`
  */
 export type FindByIdParams = {
-    /** ID des gesuchten Buchs */
+    /** ID des gesuchten Haustiers */
     readonly id: number;
-    /** Sollen die Abbildungen mitgeladen werden? */
-    readonly mitAbbildungen?: boolean;
+    /** Sollen die Fotos mitgeladen werden? */
+    readonly mitFotos?: boolean;
 };
 
 /**
- * Die Klasse `BuchReadService` implementiert das Lesen für Bücher und greift
+ * Die Klasse `HaustierReadService` implementiert das Lesen für Haustiere und greift
  * mit _TypeORM_ auf eine relationale DB zu.
  */
 @Injectable()
-export class BuchReadService {
+export class HaustierReadService {
     static readonly ID_PATTERN = /^[1-9]\d{0,10}$/u;
 
-    readonly #buchProps: string[];
+    readonly #haustierProps: string[];
 
     readonly #queryBuilder: QueryBuilder;
 
     readonly #fileRepo: Repository<HaustierFile>;
 
-    readonly #logger = getLogger(BuchReadService.name);
+    readonly #logger = getLogger(HaustierReadService.name);
 
     constructor(
         queryBuilder: QueryBuilder,
         @InjectRepository(HaustierFile) fileRepo: Repository<HaustierFile>,
     ) {
-        const buchDummy = new Buch();
-        this.#buchProps = Object.getOwnPropertyNames(buchDummy);
+        const haustierDummy = new Haustier();
+        this.#haustierProps = Object.getOwnPropertyNames(haustierDummy);
         this.#queryBuilder = queryBuilder;
         this.#fileRepo = fileRepo;
     }
@@ -78,80 +63,78 @@ export class BuchReadService {
     //              Im Promise-Objekt ist dann die Fehlerursache enthalten.
 
     /**
-     * Ein Buch asynchron anhand seiner ID suchen
-     * @param id ID des gesuchten Buches
-     * @returns Das gefundene Buch in einem Promise aus ES2015.
-     * @throws NotFoundException falls kein Buch mit der ID existiert
+     * Ein Haustier asynchron anhand seiner ID suchen
+     * @param id ID des gesuchten Haustiers
+     * @returns Das gefundene Haustier in einem Promise aus ES2015.
+     * @throws NotFoundException falls kein Haustier mit der ID existiert
      */
-    // https://2ality.com/2015/01/es6-destructuring.html#simulating-named-parameters-in-javascript
     async findById({
         id,
-        mitAbbildungen = false,
-    }: FindByIdParams): Promise<Readonly<Buch>> {
+        mitFotos: mitFotos = false,
+    }: FindByIdParams): Promise<Readonly<Haustier>> {
         this.#logger.debug('findById: id=%d', id);
 
-        // https://typeorm.io/working-with-repository
         // Das Resultat ist undefined, falls kein Datensatz gefunden
         // Lesen: Keine Transaktion erforderlich
-        const buch = await this.#queryBuilder
-            .buildId({ id, mitAbbildungen })
+        const haustier = await this.#queryBuilder
+            .buildId({ id, mitFotos: mitFotos })
             .getOne();
-        if (buch === null) {
-            throw new NotFoundException(`Es gibt kein Buch mit der ID ${id}.`);
+        if (haustier === null) {
+            throw new NotFoundException(`Es gibt kein Haustier mit der ID ${id}.`);
         }
-        if (buch.schlagwoerter === null) {
-            buch.schlagwoerter = [];
+        if (haustier.schlagwoerter === null) {
+            haustier.schlagwoerter = [];
         }
 
         if (this.#logger.isLevelEnabled('debug')) {
             this.#logger.debug(
-                'findById: buch=%s, titel=%o',
-                buch.toString(),
-                buch.titel,
+                'findById: haustier=%s, beschreibung=%o',
+                haustier.toString(),
+                haustier.beschreibung,
             );
-            if (mitAbbildungen) {
+            if (mitFotos) {
                 this.#logger.debug(
-                    'findById: abbildungen=%o',
-                    buch.abbildungen,
+                    'findById: fotos=%o',
+                    haustier.fotos,
                 );
             }
         }
-        return buch;
+        return haustier;
     }
 
     /**
-     * Binärdatei zu einem Buch suchen.
-     * @param buchId ID des zugehörigen Buchs.
+     * Binärdatei zu einem Haustier suchen.
+     * @param haustierId ID des zugehörigen Haustiers.
      * @returns Binärdatei oder undefined als Promise.
      */
-    async findFileByBuchId(
-        buchId: number,
+    async findFileByHaustierId(
+        haustierId: number,
     ): Promise<Readonly<HaustierFile> | undefined> {
-        this.#logger.debug('findFileByBuchId: buchId=%s', buchId);
-        const buchFile = await this.#fileRepo
-            .createQueryBuilder('buch_file')
-            .where('buch_id = :id', { id: buchId })
+        this.#logger.debug('findFileByHaustierId: haustierId=%s', haustierId);
+        const haustierFile = await this.#fileRepo
+            .createQueryBuilder('haustier_file')
+            .where('haustier_id = :id', { id: haustierId })
             .getOne();
-        if (buchFile === null) {
-            this.#logger.debug('findFileByBuchId: Keine Datei gefunden');
+        if (haustierFile === null) {
+            this.#logger.debug('findFileByHaustierId: Keine Datei gefunden');
             return;
         }
 
-        this.#logger.debug('findFileByBuchId: filename=%s', buchFile.filename);
-        return buchFile;
+        this.#logger.debug('findFileByHaustierId: filename=%s', haustierFile.filename);
+        return haustierFile;
     }
 
     /**
-     * Bücher asynchron suchen.
+     * Haustiere asynchron suchen.
      * @param suchkriterien JSON-Objekt mit Suchkriterien.
      * @param pageable Maximale Anzahl an Datensätzen und Seitennummer.
-     * @returns Ein JSON-Array mit den gefundenen Büchern.
-     * @throws NotFoundException falls keine Bücher gefunden wurden.
+     * @returns Ein JSON-Array mit den gefundenen Haustieren.
+     * @throws NotFoundException falls keine Haustiere gefunden wurden.
      */
     async find(
         suchkriterien: Suchkriterien | undefined,
         pageable: Pageable,
-    ): Promise<Slice<Buch>> {
+    ): Promise<Slice<Haustier>> {
         this.#logger.debug(
             'find: suchkriterien=%o, pageable=%o',
             suchkriterien,
@@ -172,57 +155,54 @@ export class BuchReadService {
             throw new NotFoundException('Ungueltige Suchkriterien');
         }
 
-        // QueryBuilder https://typeorm.io/select-query-builder
         // Das Resultat ist eine leere Liste, falls nichts gefunden
         // Lesen: Keine Transaktion erforderlich
         const queryBuilder = this.#queryBuilder.build(suchkriterien, pageable);
-        const buecher = await queryBuilder.getMany();
-        if (buecher.length === 0) {
-            this.#logger.debug('find: Keine Buecher gefunden');
+        const haustiere = await queryBuilder.getMany();
+        if (haustiere.length === 0) {
+            this.#logger.debug('find: Keine Haustiere gefunden');
             throw new NotFoundException(
-                `Keine Buecher gefunden: ${JSON.stringify(suchkriterien)}, Seite ${pageable.number}}`,
+                `Keine Haustiere gefunden: ${JSON.stringify(suchkriterien)}, Seite ${pageable.number}}`,
             );
         }
         const totalElements = await queryBuilder.getCount();
-        return this.#createSlice(buecher, totalElements);
+        return this.#createSlice(haustiere, totalElements);
     }
 
     async #findAll(pageable: Pageable) {
         const queryBuilder = this.#queryBuilder.build({}, pageable);
-        const buecher = await queryBuilder.getMany();
-        if (buecher.length === 0) {
+        const haustiere = await queryBuilder.getMany();
+        if (haustiere.length === 0) {
             throw new NotFoundException(`Ungueltige Seite "${pageable.number}"`);
         }
         const totalElements = await queryBuilder.getCount();
-        return this.#createSlice(buecher, totalElements);
+        return this.#createSlice(haustiere, totalElements);
 
     }
 
-    #createSlice(buecher: Buch[], totalElements: number) {
-        buecher.forEach((buch) => {
-            if (buch.schlagwoerter === null) {
-                buch.schlagwoerter = [];
+    #createSlice(haustiere: Haustier[], totalElements: number) {
+        haustiere.forEach((haustier) => {
+            if (haustier.schlagwoerter === null) {
+                haustier.schlagwoerter = [];
             }
         });
-        const buchSlice: Slice<Buch> = {
-            content: buecher,
+        const haustierSlice: Slice<Haustier> = {
+            content: haustiere,
             totalElements,
         };
-        this.#logger.debug('createSlice: buchSlice=%o', buchSlice);
-        return buchSlice;
+        this.#logger.debug('createSlice: haustierSlice=%o', haustierSlice);
+        return haustierSlice;
     }
 
     #checkKeys(keys: string[]) {
         this.#logger.debug('#checkKeys: keys=%s', keys);
-        // Ist jedes Suchkriterium auch eine Property von Buch oder "schlagwoerter"?
+        // Ist jedes Suchkriterium auch eine Property von Haustier oder "schlagwoerter"?
         let validKeys = true;
         keys.forEach((key) => {
             if (
-                !this.#buchProps.includes(key) &&
-                key !== 'javascript' &&
-                key !== 'typescript' &&
-                key !== 'java' &&
-                key !== 'python'
+                !this.#haustierProps.includes(key) &&
+                key !== 'verspielt' &&
+                key !== 'ruhig'
             ) {
                 this.#logger.debug(
                     '#checkKeys: ungueltiges Suchkriterium "%s"',
@@ -238,12 +218,11 @@ export class BuchReadService {
     #checkEnums(suchkriterien: Suchkriterien) {
         const { art } = suchkriterien;
         this.#logger.debug('#checkEnums: Suchkriterium "art=%s"', art);
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         return (
             art === undefined ||
-            art === 'EPUB' ||
-            art === 'HARDCOVER' ||
-            art === 'PAPERBACK'
+            art === 'HUND' ||
+            art === 'KATZE' ||
+            art === 'KLEINTIER'
         );
     }
 }

@@ -1,18 +1,3 @@
-// Copyright (C) 2021 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 /**
  * Das Modul enthält die Funktion, um die Test-DB neu zu laden.
  * @packageDocumentation
@@ -38,9 +23,7 @@ export class BannerService implements OnApplicationBootstrap {
      */
     onApplicationBootstrap() {
         const { host, nodeEnv, port } = nodeConfig;
-        figlet('buch', (_, data) => console.info(data));
-        // https://nodejs.org/api/process.html
-        // "Template String" ab ES 2015
+        figlet('haustier', (_, data) => console.info(data));
         this.#logger.info('Node: %s', process.version);
         this.#logger.info('NODE_ENV: %s', nodeEnv);
         this.#logger.info('Rechnername: %s', host);

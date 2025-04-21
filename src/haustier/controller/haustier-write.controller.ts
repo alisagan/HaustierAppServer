@@ -1,19 +1,3 @@
-/* eslint-disable max-lines */
-// Copyright (C) 2021 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 /**
  * Das Modul besteht aus der Controller-Klasse für Schreiben an der REST-Schnittstelle.
  * @packageDocumentation
@@ -50,68 +34,68 @@ import {
     ApiResponse,
     ApiTags,
 } from '@nestjs/swagger';
-import Decimal from 'decimal.js'; // eslint-disable-line @typescript-eslint/naming-convention
+import Decimal from 'decimal.js';
 import { Express, Request, Response } from 'express';
 import { AuthGuard, Public, Roles } from 'nest-keycloak-connect';
 import { paths } from '../../config/paths.js';
 import { getLogger } from '../../logger/logger.js';
 import { ResponseTimeInterceptor } from '../../logger/response-time.interceptor.js';
-import { type Abbildung } from '../entity/abbildung.entity.js';
-import { type Buch } from '../entity/haustier.entity.js';
-import { type Titel } from '../entity/titel.entity.js';
-import { BuchWriteService } from '../service/buch-write.service.js';
-import { BuchDTO, BuchDtoOhneRef } from './buchDTO.entity.js';
+import { type Foto } from '../entity/foto.entity.js';
+import { type Haustier } from '../entity/haustier.entity.js';
+import { type Beschreibung } from '../entity/beschreibung.entity.js';
+import { HaustierWriteService } from '../service/haustier-write.service.js';
+import { HaustierDTO, HaustierDtoOhneRef } from './haustierDTO.entity.js';
 import { createBaseUri } from './createBaseUri.js';
 
 const MSG_FORBIDDEN = 'Kein Token mit ausreichender Berechtigung vorhanden';
 /**
- * Die Controller-Klasse für die Verwaltung von Bücher.
+ * Die Controller-Klasse für die Verwaltung von Haustieren.
  */
 @Controller(paths.rest)
 @UseGuards(AuthGuard)
 @UseInterceptors(ResponseTimeInterceptor)
-@ApiTags('Buch REST-API')
+@ApiTags('Haustier REST-API')
 @ApiBearerAuth()
-export class BuchWriteController {
-    readonly #service: BuchWriteService;
+export class HaustierWriteController {
+    readonly #service: HaustierWriteService;
 
-    readonly #logger = getLogger(BuchWriteController.name);
+    readonly #logger = getLogger(HaustierWriteController.name);
 
-    constructor(service: BuchWriteService) {
+    constructor(service: HaustierWriteService) {
         this.#service = service;
     }
 
     /**
-     * Ein neues Buch wird asynchron angelegt. Das neu anzulegende Buch ist als
+     * Ein neues Haustier wird asynchron angelegt. Das neu anzulegende Haustier ist als
      * JSON-Datensatz im Request-Objekt enthalten. Wenn es keine
      * Verletzungen von Constraints gibt, wird der Statuscode `201` (`Created`)
      * gesetzt und im Response-Header wird `Location` auf die URI so gesetzt,
-     * dass damit das neu angelegte Buch abgerufen werden kann.
+     * dass damit das neu angelegte Haustier abgerufen werden kann.
      *
      * Falls Constraints verletzt sind, wird der Statuscode `400` (`Bad Request`)
-     * gesetzt und genauso auch wenn der Titel oder die ISBN-Nummer bereits
+     * gesetzt und genauso auch wenn die Beschreibung oder der Name bereits
      * existieren.
      *
-     * @param buchDTO JSON-Daten für ein Buch im Request-Body.
+     * @param haustierDTO JSON-Daten für ein Haustier im Request-Body.
      * @param req: Request-Objekt von Express für den Location-Header.
      * @param res Leeres Response-Objekt von Express.
      * @returns Leeres Promise-Objekt.
      */
     @Post()
     @Roles('admin', 'user')
-    @ApiOperation({ summary: 'Ein neues Buch anlegen' })
+    @ApiOperation({ summary: 'Ein neues Haustier anlegen' })
     @ApiCreatedResponse({ description: 'Erfolgreich neu angelegt' })
-    @ApiBadRequestResponse({ description: 'Fehlerhafte Buchdaten' })
+    @ApiBadRequestResponse({ description: 'Fehlerhafte Haustierdaten' })
     @ApiForbiddenResponse({ description: MSG_FORBIDDEN })
     async post(
-        @Body() buchDTO: BuchDTO,
+        @Body() haustierDTO: HaustierDTO,
         @Req() req: Request,
         @Res() res: Response,
     ): Promise<Response> {
-        this.#logger.debug('post: buchDTO=%o', buchDTO);
+        this.#logger.debug('post: haustierDTO=%o', haustierDTO);
 
-        const buch = this.#buchDtoToBuch(buchDTO);
-        const id = await this.#service.create(buch);
+        const haustier = this.#haustierDtoToHaustier(haustierDTO);
+        const id = await this.#service.create(haustier);
 
         const location = `${createBaseUri(req)}/${id}`;
         this.#logger.debug('post: location=%s', location);
@@ -119,17 +103,16 @@ export class BuchWriteController {
     }
 
     /**
-     * Zu einem gegebenen Buch wird eine Binärdatei, z.B. ein Bild, hochgeladen.
+     * Zu einem gegebenen Haustier wird eine Binärdatei, z.B. ein Bild, hochgeladen.
      * Nest realisiert File-Upload mit POST.
      * https://docs.nestjs.com/techniques/file-upload.
      * Postman: Body mit "form-data", key: "file" und "File" im Dropdown-Menü
-     * @param id ID des vorhandenen Buches
+     * @param id ID des vorhandenen Haustiers
      * @param file Binärdatei als `File`-Objekt von _Multer_.
      * @param req: Request-Objekt von Express für den Location-Header.
      * @param res Leeres Response-Objekt von Express.
      * @returns Leeres Promise-Objekt.
      */
-    // eslint-disable-next-line max-params
     @Post(':id')
     @Public()
     // @Roles({ roles: ['admin']})
@@ -175,11 +158,11 @@ export class BuchWriteController {
     }
 
     /**
-     * Ein vorhandenes Buch wird asynchron aktualisiert.
+     * Ein vorhandenes Haustier wird asynchron aktualisiert.
      *
-     * Im Request-Objekt von Express muss die ID des zu aktualisierenden Buches
+     * Im Request-Objekt von Express muss die ID des zu aktualisierenden Haustiers
      * als Pfad-Parameter enthalten sein. Außerdem muss im Rumpf das zu
-     * aktualisierende Buch als JSON-Datensatz enthalten sein. Damit die
+     * aktualisierende Haustier als JSON-Datensatz enthalten sein. Damit die
      * Aktualisierung überhaupt durchgeführt werden kann, muss im Header
      * `If-Match` auf die korrekte Version für optimistische Synchronisation
      * gesetzt sein.
@@ -190,27 +173,26 @@ export class BuchWriteController {
      * Falls die Versionsnummer fehlt, wird der Statuscode `428` (`Precondition
      * required`) gesetzt; und falls sie nicht korrekt ist, der Statuscode `412`
      * (`Precondition failed`). Falls Constraints verletzt sind, wird der
-     * Statuscode `400` (`Bad Request`) gesetzt und genauso auch wenn der neue
-     * Titel oder die neue ISBN-Nummer bereits existieren.
+     * Statuscode `400` (`Bad Request`) gesetzt und genauso auch wenn die neue
+     * Beschreibung oder der neue Name bereits existieren.
      *
-     * @param buchDTO Buchdaten im Body des Request-Objekts.
+     * @param haustierDTO Haustierdaten im Body des Request-Objekts.
      * @param id Pfad-Paramater für die ID.
      * @param version Versionsnummer aus dem Header _If-Match_.
      * @param res Leeres Response-Objekt von Express.
      * @returns Leeres Promise-Objekt.
      */
-    // eslint-disable-next-line max-params
     @Put(':id')
     @Roles('admin', 'user')
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Ein vorhandenes Buch aktualisieren' })
+    @ApiOperation({ summary: 'Ein vorhandenes Haustier aktualisieren' })
     @ApiHeader({
         name: 'If-Match',
         description: 'Header für optimistische Synchronisation',
         required: false,
     })
     @ApiNoContentResponse({ description: 'Erfolgreich aktualisiert' })
-    @ApiBadRequestResponse({ description: 'Fehlerhafte Buchdaten' })
+    @ApiBadRequestResponse({ description: 'Fehlerhafte Haustierdaten' })
     @ApiPreconditionFailedResponse({
         description: 'Falsche Version im Header "If-Match"',
     })
@@ -220,7 +202,7 @@ export class BuchWriteController {
     })
     @ApiForbiddenResponse({ description: MSG_FORBIDDEN })
     async put(
-        @Body() buchDTO: BuchDtoOhneRef,
+        @Body() haustierDTO: HaustierDtoOhneRef,
         @Param(
             'id',
             new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_FOUND }),
@@ -230,9 +212,9 @@ export class BuchWriteController {
         @Res() res: Response,
     ): Promise<Response> {
         this.#logger.debug(
-            'put: id=%s, buchDTO=%o, version=%s',
+            'put: id=%s, haustierDTO=%o, version=%s',
             id,
-            buchDTO,
+            haustierDTO,
             version,
         );
 
@@ -245,14 +227,14 @@ export class BuchWriteController {
                 .send(msg);
         }
 
-        const buch = this.#buchDtoOhneRefToBuch(buchDTO);
-        const neueVersion = await this.#service.update({ id, buch, version });
+        const haustier = this.#haustierDtoOhneRefToHaustier(haustierDTO);
+        const neueVersion = await this.#service.update({ id, haustier: haustier, version });
         this.#logger.debug('put: version=%d', neueVersion);
         return res.header('ETag', `"${neueVersion}"`).send();
     }
 
     /**
-     * Ein Buch wird anhand seiner ID-gelöscht, die als Pfad-Parameter angegeben
+     * Ein Haustier wird anhand seiner ID-gelöscht, die als Pfad-Parameter angegeben
      * ist. Der zurückgelieferte Statuscode ist `204` (`No Content`).
      *
      * @param id Pfad-Paramater für die ID.
@@ -261,9 +243,9 @@ export class BuchWriteController {
     @Delete(':id')
     @Roles('admin')
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Buch mit der ID löschen' })
+    @ApiOperation({ summary: 'Haustier mit der ID löschen' })
     @ApiNoContentResponse({
-        description: 'Das Buch wurde gelöscht oder war nicht vorhanden',
+        description: 'Das Haustier wurde gelöscht oder war nicht vorhanden',
     })
     @ApiForbiddenResponse({ description: MSG_FORBIDDEN })
     async delete(@Param('id') id: number) {
@@ -271,69 +253,68 @@ export class BuchWriteController {
         await this.#service.delete(id);
     }
 
-    #buchDtoToBuch(buchDTO: BuchDTO): Buch {
-        const titelDTO = buchDTO.titel;
-        const titel: Titel = {
+    #haustierDtoToHaustier(haustierDTO: HaustierDTO): Haustier {
+        const beschreibungDTO = haustierDTO.beschreibung;
+        const beschreibung: Beschreibung = {
             id: undefined,
-            titel: titelDTO.titel,
-            untertitel: titelDTO.untertitel,
-            buch: undefined,
+            beschreibung: beschreibungDTO.beschreibung,
+            haltungshinweise: beschreibungDTO.haltungshinweise,
+            haustier: undefined,
         };
-        const abbildungen = buchDTO.abbildungen?.map((abbildungDTO) => {
-            const abbildung: Abbildung = {
+        const fotos = haustierDTO.fotos?.map((fotosDTO) => {
+            const foto: Foto = {
                 id: undefined,
-                beschriftung: abbildungDTO.beschriftung,
-                contentType: abbildungDTO.contentType,
-                buch: undefined,
+                beschriftung: fotosDTO.beschriftung,
+                contentType: fotosDTO.contentType,
+                haustier: undefined,
             };
-            return abbildung;
+            return foto;
         });
-        const buch = {
+        const haustier = {
             id: undefined,
             version: undefined,
-            isbn: buchDTO.isbn,
-            rating: buchDTO.rating,
-            art: buchDTO.art,
-            preis: Decimal(buchDTO.preis),
-            rabatt: Decimal(buchDTO.rabatt ?? '0'),
-            lieferbar: buchDTO.lieferbar,
-            datum: buchDTO.datum,
-            homepage: buchDTO.homepage,
-            schlagwoerter: buchDTO.schlagwoerter,
-            titel,
-            abbildungen,
+            name: haustierDTO.name,
+            alter: haustierDTO.alter,
+            art: haustierDTO.art,
+            gewicht: Decimal(haustierDTO.gewicht),
+            groesse: Decimal(haustierDTO.groesse ?? '0'),
+            vermittelt: haustierDTO.vermittelt,
+            aufnahmedatum: haustierDTO.aufnahmedatum,
+            rasse: haustierDTO.rasse,
+            schlagwoerter: haustierDTO.schlagwoerter,
+            beschreibung: beschreibung,
+            fotos: fotos,
             file: undefined,
             erzeugt: new Date(),
             aktualisiert: new Date(),
         };
 
         // Rueckwaertsverweise
-        buch.titel.buch = buch;
-        buch.abbildungen?.forEach((abbildung) => {
-            abbildung.buch = buch;
+        haustier.beschreibung.haustier = haustier;
+        haustier.fotos?.forEach((foto) => {
+            foto.haustier = haustier;
         });
-        return buch;
+        return haustier;
     }
 
-    #buchDtoOhneRefToBuch(buchDTO: BuchDtoOhneRef): Buch {
+    #haustierDtoOhneRefToHaustier(haustierDTO: HaustierDtoOhneRef): Haustier {
         return {
             id: undefined,
             version: undefined,
-            isbn: buchDTO.isbn,
-            rating: buchDTO.rating,
-            art: buchDTO.art,
-            preis: Decimal(buchDTO.preis),
-            rabatt: Decimal(buchDTO.rabatt ?? '0'),
-            lieferbar: buchDTO.lieferbar,
-            datum: buchDTO.datum,
-            homepage: buchDTO.homepage,
-            schlagwoerter: buchDTO.schlagwoerter,
-            titel: undefined,
-            abbildungen: undefined,
+            name: haustierDTO.name,
+            alter: haustierDTO.alter,
+            art: haustierDTO.art,
+            gewicht: Decimal(haustierDTO.gewicht),
+            groesse: Decimal(haustierDTO.groesse ?? '0'),
+            vermittelt: haustierDTO.vermittelt,
+            aufnahmedatum: haustierDTO.aufnahmedatum,
+            rasse: haustierDTO.rasse,
+            schlagwoerter: haustierDTO.schlagwoerter,
+            beschreibung: undefined,
+            fotos: undefined,
             file: undefined,
             erzeugt: undefined,
             aktualisiert: new Date(),
         };
     }
 }
-/* eslint-enable max-lines */

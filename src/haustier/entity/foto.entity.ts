@@ -2,34 +2,30 @@ import {
     Column,
     Entity,
     JoinColumn,
-    OneToOne,
+    ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { binaryType } from '../../config/db.js';
 import { Haustier } from './haustier.entity.js';
 
 @Entity()
-export class HaustierFile {
+export class Foto {
     @PrimaryGeneratedColumn()
     id: number | undefined;
 
     @Column('varchar')
-    filename: string | undefined;
+    readonly beschriftung!: string | undefined;
 
     @Column('varchar')
-    mimetype: string | undefined;
+    readonly contentType: string | undefined;
 
-    @OneToOne(() => Haustier, (haustier) => haustier.file)
+    @ManyToOne(() => Haustier, (haustier) => haustier.fotos)
     @JoinColumn({ name: 'haustier_id' })
     haustier: Haustier | undefined;
-
-    @Column({ type: binaryType })
-    data: Uint8Array | undefined;
 
     public toString = (): string =>
         JSON.stringify({
             id: this.id,
-            filename: this.filename,
-            mimetype: this.mimetype,
+            beschriftung: this.beschriftung,
+            contentType: this.contentType,
         });
 }
