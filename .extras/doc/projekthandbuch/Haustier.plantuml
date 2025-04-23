@@ -1,0 +1,77 @@
+@startuml Entity
+
+package typeorm {
+  class "@Entity" as Entity
+  hide Entity circle
+  class "@Column" as Column
+  hide Column circle
+  class "@VersionColumn" as VersionColumn
+  hide VersionColumn circle
+  class "@PrimaryGeneratedColumn" as PrimaryGeneratedColumn
+  hide PrimaryGeneratedColumn circle
+  class "@OneToOne" as OneToOne
+  hide OneToOne circle
+  class "@OneToMany" as OneToMany
+  hide OneToMany circle
+  class "@JoinColumn" as JoinColumn
+  hide JoinColumn circle
+  class "@ManyToOne" as ManyToOne
+  hide ManyToOne circle
+  class "@CreateDateColumn" as CreateDateColumn
+  hide CreateDateColumn circle
+  class "@UpdateDateColumn" as UpdateDateColumn
+  hide UpdateDateColumn circle
+}
+
+package haustier.entity {
+  class "type HaustierArt = 'HUND' | 'KATZE' | 'KLEINTIER'" as HaustierArt
+  hide HaustierArt circle
+
+  class Haustier <<entity>> <<@Entity>> {
+    @Column() @PrimaryGeneratedColumn() readonly id: number
+    @Column() readonly version: number
+    @Column() readonly name: string
+    @Column() readonly alter: number
+    @Column() readonly art: HaustierArt
+    @Column() readonly gewicht: number
+    @Column() readonly groesse: number
+    @Column() readonly vermittelt: boolean
+    @Column() readonly aufnahmedatum: Date
+    @Column() readonly rasse?: string
+    @Column() readonly schlagwoerter?: string
+    @CreateDateColumn() readonly erzeugt: Date
+    @UpdateDateColumn() readonly aktualisiert: Date
+  }
+
+  class Beschreibung <<entity>> <<@Entity>> {
+    @Column() @PrimaryGeneratedColumn() readonly id: number
+    @Column() readonly beschreibung: string
+    @Column() readonly haltungshinweise?: string
+  }
+
+  class Foto <<entity>> <<@Entity>> {
+    @Column() @PrimaryGeneratedColumn() readonly id: number
+    @Column() readonly beschriftung: string
+    @Column() readonly contentType?: string
+  }
+
+  class HaustierFile <<entity>> <<@Entity>>{
+    @Column() @PrimaryGeneratedColumn() readonly id: number
+    @Column() readonly filename: string
+    @Column() readonly mimeType: string
+    @Column() readonly data: Uint8Array
+  }
+
+  Haustier *--> "1" Beschreibung : @OneToOne() \nbeschreibung
+  Haustier *--> "*" Foto : @OneToMany() \nfotos
+  Haustier *--> "1" HaustierFile : @OneToOne() \nfile
+
+  Haustier .right.> Entity
+  Haustier .right.> HaustierArt
+}
+
+hide empty members
+
+footer (c) Alisa Ganter
+
+@enduml
