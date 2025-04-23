@@ -12,7 +12,10 @@ import { IsOptional, Matches, MaxLength } from 'class-validator';
 export class BeschreibungDTO {
     @Matches(String.raw`^\w.*`)
     @MaxLength(100)
-    @ApiProperty({ example: 'Sehr verspielte, aber auch verschmuste Hündin.', type: String })
+    @ApiProperty({
+        example: 'Sehr verspielte, aber auch verschmuste Hündin.',
+        type: String,
+    })
     readonly beschreibung!: string;
 
     @IsOptional()

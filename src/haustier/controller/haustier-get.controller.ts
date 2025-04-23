@@ -154,7 +154,7 @@ export class HaustierGetController {
         @Req() req: Request,
         @Headers('If-None-Match') version: string | undefined,
         @Res() res: Response,
-    ): Promise<Response<Haustier | undefined>>{
+    ): Promise<Response<Haustier | undefined>> {
         this.#logger.debug('getById: id=%s, version=%s', id, version);
 
         if (req.accepts(['json', 'html']) === false) {
@@ -165,7 +165,10 @@ export class HaustierGetController {
         const haustier = await this.#service.findById({ id });
         if (this.#logger.isLevelEnabled('debug')) {
             this.#logger.debug('getById(): haustier=%s', haustier.toString());
-            this.#logger.debug('getById(): beschreibung=%o', haustier.beschreibung);
+            this.#logger.debug(
+                'getById(): beschreibung=%o',
+                haustier.beschreibung,
+            );
         }
 
         // ETags
@@ -241,7 +244,9 @@ export class HaustierGetController {
         name: 'id',
         description: 'Z.B. 1',
     })
-    @ApiNotFoundResponse({ description: 'Keine Datei zur Haustier-ID gefunden' })
+    @ApiNotFoundResponse({
+        description: 'Keine Datei zur Haustier-ID gefunden',
+    })
     @ApiOkResponse({ description: 'Die Datei wurde gefunden' })
     async getFileById(
         @Param('id') idStr: number,
@@ -252,7 +257,9 @@ export class HaustierGetController {
         const id = Number(idStr);
         if (!Number.isInteger(id)) {
             this.#logger.debug('getById: not isInteger()');
-            throw new NotFoundException(`Die Haustier-ID ${idStr} ist ungueltig.`);
+            throw new NotFoundException(
+                `Die Haustier-ID ${idStr} ist ungueltig.`,
+            );
         }
 
         const haustierFile = await this.#service.findFileByHaustierId(id);
@@ -262,7 +269,7 @@ export class HaustierGetController {
 
         const stream = Readable.from(haustierFile.data);
         res.contentType(haustierFile.mimetype ?? 'image/png').set({
-            'Content-Disposition': `inline; filename="${haustierFile.filename}"`, 
+            'Content-Disposition': `inline; filename="${haustierFile.filename}"`,
         });
 
         return new StreamableFile(stream);

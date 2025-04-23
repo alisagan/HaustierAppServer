@@ -144,10 +144,16 @@ export class HaustierWriteService {
         );
         if (id === undefined) {
             this.#logger.debug('update: Keine gueltige ID');
-            throw new NotFoundException(`Es gibt kein Haustier mit der ID ${id}.`);
+            throw new NotFoundException(
+                `Es gibt kein Haustier mit der ID ${id}.`,
+            );
         }
 
-        const validateResult = await this.#validateUpdate(haustier, id, version);
+        const validateResult = await this.#validateUpdate(
+            haustier,
+            id,
+            version,
+        );
         this.#logger.debug('update: validateResult=%o', validateResult);
         if (!(validateResult instanceof Haustier)) {
             return validateResult;

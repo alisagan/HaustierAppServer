@@ -60,7 +60,8 @@ if (db !== undefined) {
 }
 
 // "Optional Chaining" und "Nullish Coalescing" ab ES2020
-const database = (db?.name as string | undefined) ?? Haustier.name.toLowerCase();
+const database =
+    (db?.name as string | undefined) ?? Haustier.name.toLowerCase();
 
 const host = (db?.host as string | undefined) ?? 'localhost';
 const username =

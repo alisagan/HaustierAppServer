@@ -71,7 +71,7 @@ export class QueryBuilder {
             );
         }
 
-        queryBuilder.where(`${this.#haustierAlias}.id = :id`, { id: id }); 
+        queryBuilder.where(`${this.#haustierAlias}.id = :id`, { id: id });
         return queryBuilder;
     }
 
@@ -108,7 +108,10 @@ export class QueryBuilder {
         );
 
         let queryBuilder = this.#repo.createQueryBuilder(this.#haustierAlias);
-        queryBuilder.innerJoinAndSelect(`${this.#haustierAlias}.beschreibung`, 'beschreibung');
+        queryBuilder.innerJoinAndSelect(
+            `${this.#haustierAlias}.beschreibung`,
+            'beschreibung',
+        );
 
         // z.B. { beschreibung: 'a', alter: 5, verspielt: true }
         // const { beschreibung, verspielt, ruhig, ...otherProps } = suchkriterien;
@@ -170,7 +173,7 @@ export class QueryBuilder {
         // Restliche Properties als Key-Value-Paare: Vergleiche auf Gleichheit
         Object.entries(restProps).forEach(([key, value]) => {
             const param: Record<string, any> = {};
-            param[key] = value; 
+            param[key] = value;
             queryBuilder = useWhere
                 ? queryBuilder.where(
                       `${this.#haustierAlias}.${key} = :${key}`,

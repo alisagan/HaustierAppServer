@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import Decimal from 'decimal.js'; 
+import Decimal from 'decimal.js';
 import { type ValueTransformer } from 'typeorm';
 
 export class DecimalTransformer implements ValueTransformer {

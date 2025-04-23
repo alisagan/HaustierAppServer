@@ -4,7 +4,7 @@
  */
 
 import { ApiProperty } from '@nestjs/swagger';
-import Decimal from 'decimal.js'; 
+import Decimal from 'decimal.js';
 import {
     Column,
     CreateDateColumn,

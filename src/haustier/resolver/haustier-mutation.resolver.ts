@@ -79,7 +79,10 @@ export class HaustierMutationResolver {
         const idStr = id.id;
         this.#logger.debug('delete: id=%s', idStr);
         const deletePerformed = await this.#service.delete(idStr);
-        this.#logger.debug('deleteHaustier: deletePerformed=%s', deletePerformed);
+        this.#logger.debug(
+            'deleteHaustier: deletePerformed=%s',
+            deletePerformed,
+        );
         return deletePerformed;
     }
 
