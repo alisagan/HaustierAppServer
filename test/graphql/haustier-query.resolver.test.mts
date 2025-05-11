@@ -1,32 +1,21 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-// Copyright (C) 2025 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { type GraphQLRequest } from '@apollo/server';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { HttpStatus } from '@nestjs/common';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
-import { type Buch, type BuchArt } from '../../src/buch/entity/buch.entity.js';
+import {
+    type Haustier,
+    type HaustierArt,
+} from '../../src/haustier/entity/haustier.entity.js';
 import { type GraphQLResponseBody } from './graphql.mjs';
 import { baseURL, httpsAgent } from '../constants.mjs';
 
-type BuchDTO = Omit<
-    Buch,
-    'abbildungen' | 'aktualisiert' | 'erzeugt' | 'rabatt'
+type HaustierDTO = Omit<
+    Haustier,
+    'fotos' | 'aktualisiert' | 'erzeugt' | 'groesse'
 > & {
-    rabatt: string;
+    groesse: string;
 };
 
 // -----------------------------------------------------------------------------
@@ -34,14 +23,14 @@ type BuchDTO = Omit<
 // -----------------------------------------------------------------------------
 const idVorhanden = '1';
 
-const titelVorhanden = 'Alpha';
-const teilTitelVorhanden = 'a';
-const teilTitelNichtVorhanden = 'abc';
+const beschreibungVorhanden = 'Sehr verspielt und voller Lebensfreude';
+const teilBeschreibungVorhanden = 'e';
+const teilBeschreibungNichtVorhanden = 'abc';
 
-const isbnVorhanden = '978-3-897-22583-1';
+const nameVorhanden = 'Mila';
 
-const ratingMin = 3;
-const ratingNichtVorhanden = 99;
+const alterMin = 3;
+const alterNichtVorhanden = 99;
 
 // -----------------------------------------------------------------------------
 // T e s t s
@@ -63,25 +52,24 @@ describe('GraphQL Queries', () => {
         });
     });
 
-    test.concurrent('Buch zu vorhandener ID', async () => {
+    test.concurrent('Haustier zu vorhandener ID', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buch(id: "${idVorhanden}") {
+                    haustier(id: "${idVorhanden}") {
                         version
-                        isbn
-                        rating
+                        name
+                        alter
                         art
-                        preis
-                        lieferbar
-                        datum
-                        homepage
+                        gewicht
+                        vermittelt
+                        aufnahmedatum
+                        rasse
                         schlagwoerter
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
-                        rabatt(short: true)
                     }
                 }
             `,
@@ -97,22 +85,22 @@ describe('GraphQL Queries', () => {
         expect(data.errors).toBeUndefined();
         expect(data.data).toBeDefined();
 
-        const { buch } = data.data! as { buch: BuchDTO };
+        const { haustier } = data.data! as { haustier: HaustierDTO };
 
-        expect(buch.titel?.titel).toMatch(/^\w/u);
-        expect(buch.version).toBeGreaterThan(-1);
-        expect(buch.id).toBeUndefined();
+        expect(haustier.beschreibung?.beschreibung).toMatch(/^\w/u);
+        expect(haustier.version).toBeGreaterThan(-1);
+        expect(haustier.id).toBeUndefined();
     });
 
-    test.concurrent('Buch zu nicht-vorhandener ID', async () => {
+    test.concurrent('Haustier zu nicht-vorhandener ID', async () => {
         // given
         const id = '999999';
         const body: GraphQLRequest = {
             query: `
                 {
-                    buch(id: "${id}") {
-                        titel {
-                            titel
+                    haustier(id: "${id}") {
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -126,7 +114,7 @@ describe('GraphQL Queries', () => {
         // then
         expect(status).toBe(HttpStatus.OK);
         expect(headers['content-type']).toMatch(/json/iu);
-        expect(data.data!.buch).toBeNull();
+        expect(data.data!.haustier).toBeNull();
 
         const { errors } = data;
 
@@ -135,24 +123,24 @@ describe('GraphQL Queries', () => {
         const [error] = errors!;
         const { message, path, extensions } = error;
 
-        expect(message).toBe(`Es gibt kein Buch mit der ID ${id}.`);
+        expect(message).toBe(`Es gibt kein Haustier mit der ID ${id}.`);
         expect(path).toBeDefined();
-        expect(path![0]).toBe('buch');
+        expect(path![0]).toBe('haustier');
         expect(extensions).toBeDefined();
         expect(extensions!.code).toBe('BAD_USER_INPUT');
     });
 
-    test.concurrent('Buch zu vorhandenem Titel', async () => {
+    test.concurrent('Haustier zu vorhandener Beschreibung', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        titel: "${titelVorhanden}"
+                    haustiere(suchkriterien: {
+                        beschreibung: "${beschreibungVorhanden}"
                     }) {
                         art
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -169,26 +157,28 @@ describe('GraphQL Queries', () => {
         expect(data.errors).toBeUndefined();
         expect(data.data).toBeDefined();
 
-        const { buecher } = data.data! as { buecher: BuchDTO[] };
+        const { haustiere } = data.data! as { haustiere: HaustierDTO[] };
 
-        expect(buecher).not.toHaveLength(0);
-        expect(buecher).toHaveLength(1);
+        expect(haustiere).not.toHaveLength(0);
+        expect(haustiere).toHaveLength(1);
 
-        const [buch] = buecher;
+        const [haustier] = haustiere;
 
-        expect(buch!.titel?.titel).toBe(titelVorhanden);
+        expect(haustier!.beschreibung?.beschreibung).toBe(
+            beschreibungVorhanden,
+        );
     });
 
-    test.concurrent('Buch zu vorhandenem Teil-Titel', async () => {
+    test.concurrent('Haustier zu vorhandener Teil-Beschreibung', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        titel: "${teilTitelVorhanden}"
+                    haustiere(suchkriterien: {
+                        beschreibung: "${teilBeschreibungVorhanden}"
                     }) {
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -205,30 +195,30 @@ describe('GraphQL Queries', () => {
         expect(data.errors).toBeUndefined();
         expect(data.data).toBeDefined();
 
-        const { buecher } = data.data! as { buecher: BuchDTO[] };
+        const { haustiere } = data.data! as { haustiere: HaustierDTO[] };
 
-        expect(buecher).not.toHaveLength(0);
+        expect(haustiere).not.toHaveLength(0);
 
-        buecher
-            .map((buch) => buch.titel)
-            .forEach((titel) =>
-                expect(titel?.titel?.toLowerCase()).toStrictEqual(
-                    expect.stringContaining(teilTitelVorhanden),
+        haustiere
+            .map((haustier) => haustier.beschreibung)
+            .forEach((beschreibung) =>
+                expect(beschreibung?.beschreibung?.toLowerCase()).toStrictEqual(
+                    expect.stringContaining(teilBeschreibungVorhanden),
                 ),
             );
     });
 
-    test.concurrent('Buch zu nicht vorhandenem Titel', async () => {
+    test.concurrent('Haustier zu nicht vorhandener Beschreibung', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        titel: "${teilTitelNichtVorhanden}"
+                    haustiere(suchkriterien: {
+                        beschreibung: "${teilBeschreibungNichtVorhanden}"
                     }) {
                         art
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -242,7 +232,7 @@ describe('GraphQL Queries', () => {
         // then
         expect(status).toBe(HttpStatus.OK);
         expect(headers['content-type']).toMatch(/json/iu);
-        expect(data.data!.buecher).toBeNull();
+        expect(data.data!.haustiere).toBeNull();
 
         const { errors } = data;
 
@@ -251,24 +241,24 @@ describe('GraphQL Queries', () => {
         const [error] = errors!;
         const { message, path, extensions } = error;
 
-        expect(message).toMatch(/^Keine Buecher gefunden:/u);
+        expect(message).toMatch(/^Keine Haustiere gefunden:/u);
         expect(path).toBeDefined();
-        expect(path![0]).toBe('buecher');
+        expect(path![0]).toBe('haustiere');
         expect(extensions).toBeDefined();
         expect(extensions!.code).toBe('BAD_USER_INPUT');
     });
 
-    test.concurrent('Buch zu vorhandener ISBN-Nummer', async () => {
+    test.concurrent('Haustier zu vorhandenem Namen', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        isbn: "${isbnVorhanden}"
+                    haustiere(suchkriterien: {
+                        name: "${nameVorhanden}"
                     }) {
-                        isbn
-                        titel {
-                            titel
+                        name
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -285,30 +275,30 @@ describe('GraphQL Queries', () => {
         expect(data.errors).toBeUndefined();
         expect(data.data).toBeDefined();
 
-        const { buecher } = data.data! as { buecher: BuchDTO[] };
+        const { haustiere } = data.data! as { haustiere: HaustierDTO[] };
 
-        expect(buecher).not.toHaveLength(0);
-        expect(buecher).toHaveLength(1);
+        expect(haustiere).not.toHaveLength(0);
+        expect(haustiere).toHaveLength(1);
 
-        const [buch] = buecher;
-        const { isbn, titel } = buch!;
+        const [haustier] = haustiere;
+        const { name, beschreibung } = haustier!;
 
-        expect(isbn).toBe(isbnVorhanden);
-        expect(titel?.titel).toBeDefined();
+        expect(name).toBe(nameVorhanden);
+        expect(beschreibung?.beschreibung).toBeDefined();
     });
 
-    test.concurrent('Buecher mit Mindest-"rating"', async () => {
+    test.concurrent('Haustiere mit Mindestalter', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        rating: ${ratingMin},
-                        titel: "${teilTitelVorhanden}"
+                    haustiere(suchkriterien: {
+                        alter: ${alterMin},
+                        beschreibung: "${teilBeschreibungVorhanden}"
                     }) {
-                        rating
-                        titel {
-                            titel
+                        alter
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -326,30 +316,30 @@ describe('GraphQL Queries', () => {
 
         expect(data.data).toBeDefined();
 
-        const { buecher } = data.data! as { buecher: BuchDTO[] };
+        const { haustiere } = data.data! as { haustiere: HaustierDTO[] };
 
-        expect(buecher).not.toHaveLength(0);
+        expect(haustiere).not.toHaveLength(0);
 
-        buecher.forEach((buch) => {
-            const { rating, titel } = buch;
+        haustiere.forEach((haustier) => {
+            const { alter, beschreibung } = haustier;
 
-            expect(rating).toBeGreaterThanOrEqual(ratingMin);
-            expect(titel?.titel?.toLowerCase()).toStrictEqual(
-                expect.stringContaining(teilTitelVorhanden),
+            expect(alter).toBeGreaterThanOrEqual(alterMin);
+            expect(beschreibung?.beschreibung?.toLowerCase()).toStrictEqual(
+                expect.stringContaining(teilBeschreibungVorhanden),
             );
         });
     });
 
-    test.concurrent('Kein Buch zu nicht-vorhandenem "rating"', async () => {
+    test.concurrent('Kein Haustier zu nicht-vorhandenem alter', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        rating: ${ratingNichtVorhanden}
+                    haustiere(suchkriterien: {
+                        alter: ${alterNichtVorhanden}
                     }) {
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -363,7 +353,7 @@ describe('GraphQL Queries', () => {
         // then
         expect(status).toBe(HttpStatus.OK);
         expect(headers['content-type']).toMatch(/json/iu);
-        expect(data.data!.buecher).toBeNull();
+        expect(data.data!.haustiere).toBeNull();
 
         const { errors } = data;
 
@@ -372,25 +362,25 @@ describe('GraphQL Queries', () => {
         const [error] = errors!;
         const { message, path, extensions } = error;
 
-        expect(message).toMatch(/^Keine Buecher gefunden:/u);
+        expect(message).toMatch(/^Keine Haustiere gefunden:/u);
         expect(path).toBeDefined();
-        expect(path![0]).toBe('buecher');
+        expect(path![0]).toBe('haustiere');
         expect(extensions).toBeDefined();
         expect(extensions!.code).toBe('BAD_USER_INPUT');
     });
 
-    test.concurrent('Buecher zur Art "EPUB"', async () => {
+    test.concurrent('Haustiere zur Art "HUND"', async () => {
         // given
-        const buchArt: BuchArt = 'EPUB';
+        const haustierArt: HaustierArt = 'HUND';
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        art: ${buchArt}
+                    haustiere(suchkriterien: {
+                        art: ${haustierArt}
                     }) {
                         art
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -407,29 +397,29 @@ describe('GraphQL Queries', () => {
         expect(data.errors).toBeUndefined();
         expect(data.data).toBeDefined();
 
-        const { buecher } = data.data! as { buecher: BuchDTO[] };
+        const { haustiere } = data.data! as { haustiere: HaustierDTO[] };
 
-        expect(buecher).not.toHaveLength(0);
+        expect(haustiere).not.toHaveLength(0);
 
-        buecher.forEach((buch) => {
-            const { art, titel } = buch;
+        haustiere.forEach((haustier) => {
+            const { art, beschreibung } = haustier;
 
-            expect(art).toBe(buchArt);
-            expect(titel?.titel).toBeDefined();
+            expect(art).toBe(haustierArt);
+            expect(beschreibung?.beschreibung).toBeDefined();
         });
     });
 
-    test.concurrent('Buecher zur einer ungueltigen Art', async () => {
+    test.concurrent('Haustiere zur einer ungueltigen Art', async () => {
         // given
-        const buchArt = 'UNGUELTIG';
+        const haustierArt = 'UNGUELTIG';
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        art: ${buchArt}
+                    haustiere(suchkriterien: {
+                        art: ${haustierArt}
                     }) {
-                        titel {
-                            titel
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -456,17 +446,17 @@ describe('GraphQL Queries', () => {
         expect(extensions!.code).toBe('GRAPHQL_VALIDATION_FAILED');
     });
 
-    test.concurrent('Buecher mit lieferbar=true', async () => {
+    test.concurrent('Haustiere mit vermittelt=true', async () => {
         // given
         const body: GraphQLRequest = {
             query: `
                 {
-                    buecher(suchkriterien: {
-                        lieferbar: true
+                    haustiere(suchkriterien: {
+                        vermittelt: true
                     }) {
-                        lieferbar
-                        titel {
-                            titel
+                        vermittelt
+                        beschreibung {
+                            beschreibung
                         }
                     }
                 }
@@ -483,15 +473,15 @@ describe('GraphQL Queries', () => {
         expect(data.errors).toBeUndefined();
         expect(data.data).toBeDefined();
 
-        const { buecher } = data.data! as { buecher: BuchDTO[] };
+        const { haustiere } = data.data! as { haustiere: HaustierDTO[] };
 
-        expect(buecher).not.toHaveLength(0);
+        expect(haustiere).not.toHaveLength(0);
 
-        buecher.forEach((buch) => {
-            const { lieferbar, titel } = buch;
+        haustiere.forEach((haustier) => {
+            const { vermittelt, beschreibung } = haustier;
 
-            expect(lieferbar).toBe(true);
-            expect(titel?.titel).toBeDefined();
+            expect(vermittelt).toBe(true);
+            expect(beschreibung?.beschreibung).toBeDefined();
         });
     });
 });
