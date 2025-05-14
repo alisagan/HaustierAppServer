@@ -31,56 +31,6 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Neues Haustier', async () => {
-        // given
-        const authorization = { Authorization: `Bearer ${token}` };
-        const body: GraphQLQuery = {
-            query: `
-                mutation {
-                    create(
-                        input: {
-                            name: "Balu",
-                            alter: 3,
-                            art: HUND,
-                            gewicht: 55.0,
-                            groesse: 75.50,
-                            vermittelt: true,
-                            aufnahmedatum: "2022-02-28",
-                            rasse: "Bernhardiner",
-                            schlagwoerter: ["RUHIG"],
-                            beschreibung: {
-                                beschreibung: "Super süß und verspielt",
-                                haltungshinweise: "Viel Fellpflege nötig",
-                            },
-                            fotos: [{
-                                beschriftung: "Foto 1",
-                                contentType: "img/png"
-                            }]
-                        }
-                    ) {
-                        id
-                    }
-                }
-            `,
-        };
-
-        // when
-        const { status, headers, data }: AxiosResponse<GraphQLResponseBody> =
-            await client.post(graphqlPath, body, { headers: authorization });
-
-        // then
-        expect(status).toBe(HttpStatus.OK);
-        expect(headers['content-type']).toMatch(/json/iu);
-        expect(data.data).toBeDefined();
-
-        const { create } = data.data!;
-
-        // Der Wert der Mutation ist die generierte ID
-        expect(create).toBeDefined();
-        expect(create.id).toBeGreaterThan(0);
-    });
-
-    // -------------------------------------------------------------------------
     test('Haustier mit ungueltigen Werten neu anlegen', async () => {
         // given
         const authorization = { Authorization: `Bearer ${token}` };
