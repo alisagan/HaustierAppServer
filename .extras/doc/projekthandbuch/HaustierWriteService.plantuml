@@ -1,0 +1,65 @@
+@startuml Anwendungskern
+
+interface Promise<T>
+
+package @nestjs/common {
+  class "@Injectable" as Injectable
+  hide Injectable circle
+}
+
+package typeorm {
+  class Repository<T>
+}
+
+package @nestjs/typeorm {
+  class "@InjectRepository" as InjectRepository
+  hide InjectRepository circle
+}
+
+package mail {
+  class MailService
+}
+
+package haustier {
+  package entity {
+    class Haustier
+    class HaustierFile
+  }
+
+  package service #DDDDDD {
+    class NameHaustierExistsException
+    class VersionInvalidException
+    class VersionOutdatedException
+
+    class HaustierWriteService << control >> <<@Injectable()>> {
+      + async create(haustier: Haustier): Promise<number>
+      + async addFile(haustierId: number, data: Buffer, filename: string, mimeType: string): Promise<Readonly<HaustierFile>>
+      + async update(id: number, haustier: Haustier, version: string): Promise<number>
+      + async delete(id: number): Promise<boolean>
+    }
+
+    HaustierWriteService o--> "1" BuchReadService: readService
+    HaustierWriteService o--> "1" Repository: @InjectRepository repo
+    HaustierWriteService o--> "1" MailService: mailService
+
+    HaustierWriteService .up.> Injectable
+    HaustierWriteService .up.> InjectRepository
+
+    HaustierWriteService .up.> Promise
+    HaustierWriteService .up.> Haustier
+    HaustierWriteService .up.> HaustierFile
+    HaustierWriteService ..> NameHaustierExistsException
+    HaustierWriteService ..> VersionInvalidException
+    HaustierWriteService ..> VersionOutdatedException
+
+    Haustier .up[hidden].> Promise
+    Haustier .up[hidden].> Injectable
+    Haustier .up[hidden].> InjectRepository
+  }
+}
+
+hide empty members
+
+footer (c) Alisa Ganter
+
+@enduml

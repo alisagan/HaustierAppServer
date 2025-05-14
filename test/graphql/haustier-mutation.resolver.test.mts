@@ -1,18 +1,4 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-// Copyright (C) 2016 - present Juergen Zimmermann, Hochschule Karlsruhe
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { beforeAll, describe, expect, inject, test } from 'vitest';
 import { HttpStatus } from '@nestjs/common';
@@ -45,7 +31,7 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Neues Buch', async () => {
+    test('Haustier mit ungueltigen Werten neu anlegen', async () => {
         // given
         const authorization = { Authorization: `Bearer ${token}` };
         const body: GraphQLQuery = {
@@ -53,66 +39,16 @@ describe('GraphQL Mutations', () => {
                 mutation {
                     create(
                         input: {
-                            isbn: "978-1-491-95035-7",
-                            rating: 1,
-                            art: EPUB,
-                            preis: 99.99,
-                            rabatt: 0.0123,
-                            lieferbar: true,
-                            datum: "2022-02-28",
-                            homepage: "https://create.mutation",
-                            schlagwoerter: ["JAVASCRIPT", "TYPESCRIPT"],
-                            titel: {
-                                titel: "Titelcreatemutation",
-                                untertitel: "untertitelcreatemutation"
-                            },
-                            abbildungen: [{
-                                beschriftung: "Abb. 1",
-                                contentType: "img/png"
-                            }]
-                        }
-                    ) {
-                        id
-                    }
-                }
-            `,
-        };
-
-        // when
-        const { status, headers, data }: AxiosResponse<GraphQLResponseBody> =
-            await client.post(graphqlPath, body, { headers: authorization });
-
-        // then
-        expect(status).toBe(HttpStatus.OK);
-        expect(headers['content-type']).toMatch(/json/iu);
-        expect(data.data).toBeDefined();
-
-        const { create } = data.data!;
-
-        // Der Wert der Mutation ist die generierte ID
-        expect(create).toBeDefined();
-        expect(create.id).toBeGreaterThan(0);
-    });
-
-    // -------------------------------------------------------------------------
-    test('Buch mit ungueltigen Werten neu anlegen', async () => {
-        // given
-        const authorization = { Authorization: `Bearer ${token}` };
-        const body: GraphQLQuery = {
-            query: `
-                mutation {
-                    create(
-                        input: {
-                            isbn: "falsche-ISBN",
-                            rating: -1,
-                            art: EPUB,
-                            preis: -1,
-                            rabatt: 2,
-                            lieferbar: false,
-                            datum: "12345-123-123",
-                            homepage: "anyHomepage",
-                            titel: {
-                                titel: "?!"
+                            name: "falscher-Name123",
+                            alter: -1,
+                            art: HUND,
+                            gewicht: -1,
+                            groesse: -2,
+                            vermittelt: false,
+                            aufnahmedatum: "12345-123-123",
+                            rasse: "anyRasse",
+                            beschreibung: {
+                                beschreibung: "?!"
                             }
                         }
                     ) {
@@ -122,13 +58,13 @@ describe('GraphQL Mutations', () => {
             `,
         };
         const expectedMsg = [
-            expect.stringMatching(/^isbn /u),
-            expect.stringMatching(/^rating /u),
-            expect.stringMatching(/^preis /u),
-            expect.stringMatching(/^rabatt /u),
-            expect.stringMatching(/^datum /u),
-            expect.stringMatching(/^homepage /u),
-            expect.stringMatching(/^titel.titel /u),
+            expect.stringMatching(/^name /u),
+            expect.stringMatching(/^alter /u),
+            expect.stringMatching(/^gewicht /u),
+            expect.stringMatching(/^groesse /u),
+            expect.stringMatching(/^aufnahmedatum /u),
+            expect.stringMatching(/^rasse /u),
+            expect.stringMatching(/^beschreibung.beschreibung /u),
         ];
 
         // when
@@ -157,7 +93,7 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Buch aktualisieren', async () => {
+    test('Haustier aktualisieren', async () => {
         // given
         const authorization = { Authorization: `Bearer ${token}` };
         const body: GraphQLQuery = {
@@ -167,15 +103,15 @@ describe('GraphQL Mutations', () => {
                         input: {
                             id: "40",
                             version: 0,
-                            isbn: "978-0-007-09732-6",
-                            rating: 5,
-                            art: HARDCOVER,
-                            preis: 444.44,
-                            rabatt: 0.099,
-                            lieferbar: false,
-                            datum: "2021-04-04",
-                            homepage: "https://update.mutation"
-                            schlagwoerter: ["JAVA", "PYTHON"],
+                            name: "Schneeflocke",
+                            alter: 2,
+                            art: KLEINTIER,
+                            gewicht: 6.40,
+                            groesse: 5.25,
+                            vermittelt: true,
+                            aufnahmedatum: "2025-02-04",
+                            rasse: "Zwergkaninchen"
+                            schlagwoerter: ["RUHIG"],
                         }
                     ) {
                         version
@@ -200,7 +136,7 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Buch mit ungueltigen Werten aktualisieren', async () => {
+    test('Haustier mit ungueltigen Werten aktualisieren', async () => {
         // given
         const authorization = { Authorization: `Bearer ${token}` };
         const id = '40';
@@ -211,15 +147,15 @@ describe('GraphQL Mutations', () => {
                         input: {
                             id: "${id}",
                             version: 0,
-                            isbn: "falsche-ISBN",
-                            rating: -1,
-                            art: EPUB,
-                            preis: -1,
-                            rabatt: 2,
-                            lieferbar: false,
-                            datum: "12345-123-123",
-                            homepage: "anyHomepage",
-                            schlagwoerter: ["JAVASCRIPT", "TYPESCRIPT"]
+                            name: "falscher-Name123",
+                            alter: -1,
+                            art: HUND,
+                            gewicht: -1,
+                            groesse: -2,
+                            vermittelt: false,
+                            aufnahmedatum: "12345-123-123",
+                            rasse: "anyRasse",
+                            schlagwoerter: ["RUHIG", "VERSPIELT"]
                         }
                     ) {
                         version
@@ -228,12 +164,12 @@ describe('GraphQL Mutations', () => {
             `,
         };
         const expectedMsg = [
-            expect.stringMatching(/^isbn /u),
-            expect.stringMatching(/^rating /u),
-            expect.stringMatching(/^preis /u),
-            expect.stringMatching(/^rabatt /u),
-            expect.stringMatching(/^datum /u),
-            expect.stringMatching(/^homepage /u),
+            expect.stringMatching(/^name /u),
+            expect.stringMatching(/^alter /u),
+            expect.stringMatching(/^gewicht /u),
+            expect.stringMatching(/^groesse /u),
+            expect.stringMatching(/^aufnahmedatum /u),
+            expect.stringMatching(/^rasse /u),
         ];
 
         // when
@@ -259,7 +195,7 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Nicht-vorhandenes Buch aktualisieren', async () => {
+    test('Nicht-vorhandenes Haustier aktualisieren', async () => {
         // given
         const authorization = { Authorization: `Bearer ${token}` };
         const id = '999999';
@@ -270,15 +206,15 @@ describe('GraphQL Mutations', () => {
                         input: {
                             id: "${id}",
                             version: 0,
-                            isbn: "978-0-007-09732-6",
-                            rating: 5,
-                            art: EPUB,
-                            preis: 99.99,
-                            rabatt: 0.099,
-                            lieferbar: false,
-                            datum: "2021-01-02",
-                            homepage: "https://acme.com",
-                            schlagwoerter: ["JAVASCRIPT", "TYPESCRIPT"]
+                            name: "Charlie",
+                            alter: 5,
+                            art: KLEINTIER,
+                            gewicht: 9.9,
+                            groesse: 5.5,
+                            vermittelt: false,
+                            aufnahmedatum: "2021-01-02",
+                            rasse: "Meerschweinchen",
+                            schlagwoerter: ["RUHIG"]
                         }
                     ) {
                         version
@@ -307,7 +243,7 @@ describe('GraphQL Mutations', () => {
         const { message, path, extensions } = error;
 
         expect(message).toBe(
-            `Es gibt kein Buch mit der ID ${id.toLowerCase()}.`,
+            `Es gibt kein Haustier mit der ID ${id.toLowerCase()}.`,
         );
         expect(path).toBeDefined();
         expect(path![0]).toBe('update');
@@ -316,7 +252,7 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Buch loeschen', async () => {
+    test('Haustier loeschen', async () => {
         // given
         const authorization = { Authorization: `Bearer ${token}` };
         const body: GraphQLQuery = {
@@ -343,7 +279,7 @@ describe('GraphQL Mutations', () => {
     });
 
     // -------------------------------------------------------------------------
-    test('Buch loeschen als "user"', async () => {
+    test('Haustier loeschen als "user"', async () => {
         // given
         const authorization = { Authorization: `Bearer ${tokenUser}` };
         const body: GraphQLQuery = {

@@ -228,7 +228,11 @@ export class HaustierWriteController {
         }
 
         const haustier = this.#haustierDtoOhneRefToHaustier(haustierDTO);
-        const neueVersion = await this.#service.update({ id, haustier: haustier, version });
+        const neueVersion = await this.#service.update({
+            id,
+            haustier: haustier,
+            version,
+        });
         this.#logger.debug('put: version=%d', neueVersion);
         return res.header('ETag', `"${neueVersion}"`).send();
     }

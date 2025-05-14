@@ -80,7 +80,9 @@ export class HaustierReadService {
             .buildId({ id, mitFotos: mitFotos })
             .getOne();
         if (haustier === null) {
-            throw new NotFoundException(`Es gibt kein Haustier mit der ID ${id}.`);
+            throw new NotFoundException(
+                `Es gibt kein Haustier mit der ID ${id}.`,
+            );
         }
         if (haustier.schlagwoerter === null) {
             haustier.schlagwoerter = [];
@@ -93,10 +95,7 @@ export class HaustierReadService {
                 haustier.beschreibung,
             );
             if (mitFotos) {
-                this.#logger.debug(
-                    'findById: fotos=%o',
-                    haustier.fotos,
-                );
+                this.#logger.debug('findById: fotos=%o', haustier.fotos);
             }
         }
         return haustier;
@@ -120,7 +119,10 @@ export class HaustierReadService {
             return;
         }
 
-        this.#logger.debug('findFileByHaustierId: filename=%s', haustierFile.filename);
+        this.#logger.debug(
+            'findFileByHaustierId: filename=%s',
+            haustierFile.filename,
+        );
         return haustierFile;
     }
 
@@ -173,11 +175,12 @@ export class HaustierReadService {
         const queryBuilder = this.#queryBuilder.build({}, pageable);
         const haustiere = await queryBuilder.getMany();
         if (haustiere.length === 0) {
-            throw new NotFoundException(`Ungueltige Seite "${pageable.number}"`);
+            throw new NotFoundException(
+                `Ungueltige Seite "${pageable.number}"`,
+            );
         }
         const totalElements = await queryBuilder.getCount();
         return this.#createSlice(haustiere, totalElements);
-
     }
 
     #createSlice(haustiere: Haustier[], totalElements: number) {

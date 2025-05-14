@@ -1,0 +1,64 @@
+@startuml Anwendungskern
+
+interface Promise<T>
+
+package @nestjs/common {
+  class "@Injectable" as Injectable
+  hide Injectable circle
+}
+
+package typeorm {
+  class Repository<T>
+}
+
+package @nestjs/typeorm {
+  class "@InjectRepository" as InjectRepository
+  hide InjectRepository circle
+}
+
+package haustier {
+  package entity {
+    class Haustier
+  }
+
+  package service #DDDDDD {
+    class QueryBuilder
+
+    class Suchkriterien
+
+    class Pageable
+
+    class Slice<T>
+
+    class HaustierReadService << control >> <<@Injectable()>> {
+      + async findById(id: number, mitFotos: boolean): Promise<Readonly <Haustier>>
+      + async findFileByHaustierId(haustierId: number): Promise<Readonly <HaustierFile> | undefined>
+      + async find(suchkriterien: Suchkriterien | undefined, pageable: Pageable): Promise<Slice<Haustier>>
+      + async findAll(pageable: Pageable): Promise<Slice<Haustier>>
+    }
+
+    HaustierReadService o--> "1" QueryBuilder: queryBuilder
+    HaustierReadService o--> "1" Repository: @InjectRepository repo
+    
+    HaustierReadService ..> Suchkriterien
+    HaustierReadService ..> Pageable
+    HaustierReadService ..> Slice
+
+    Pageable .[hidden].> Slice
+
+    HaustierReadService .up.> Injectable
+    HaustierReadService .up.> InjectRepository
+
+    HaustierReadService .up.> Promise
+    HaustierReadService ..> Haustier
+
+    QueryBuilder .[hidden].> Repository
+    QueryBuilder .[hidden].> Haustier
+  }
+}
+
+hide empty members
+
+footer (c) Alisa Ganter
+
+@enduml

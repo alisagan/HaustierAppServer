@@ -1,0 +1,69 @@
+@startuml Controller-Klasse
+
+interface Promise<T>
+
+package @nestjs/graphql {
+  class "@Resolver" as Resolver
+  hide Resolver circle
+
+  class "@Query" as Query
+  hide Query circle
+
+  class "@Args" as Args
+  hide Args circle
+
+  Resolver .left[hidden].> Promise
+}
+
+package @nestjs/common {
+  class "@UseInterceptors" as UseInterceptors
+  hide UseInterceptors circle
+
+  class "@UseFilters" as UseFilters
+  hide UseFilters circle
+}
+
+package nest-keycloak-connect{
+  class "@Public" as Public
+  hide Public circle
+}
+
+package haustier {
+  package service {
+    class HaustierReadService << control >>
+  }
+
+  package resolver #DDDDDD {
+    interface IdInput {
+        id: number
+    }
+
+    interface SuchkriterienInput{
+      suchkriterien: Suchkriterien
+    }
+
+    class HaustierQueryResolver << control >> << @Resolver() >> << @UseInterceptors() >> << @UseFilters() >> {
+      + @Query() @Public() async findById(@Args() id: IdInput): Promise<Readonly<Haustier>>
+      + @Query() @Public() async find(@Args() input: SuchkriterienInput | undefined): Promise<Haustier[]>
+    }
+
+    HaustierQueryResolver o-up-> "1" HaustierReadService : service
+    
+    HaustierQueryResolver ..> IdInput
+    HaustierQueryResolver ..> SuchkriterienInput
+
+    HaustierQueryResolver ..> Resolver
+    HaustierQueryResolver .right.> UseInterceptors
+    HaustierQueryResolver .right.> Public
+    HaustierQueryResolver ..> Promise
+
+    HaustierReadService .[hidden].> Promise
+    HaustierReadService .[hidden].> Resolver
+  }
+}
+
+hide empty members
+
+footer (c) Alisa Ganter
+
+@enduml

@@ -20,8 +20,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { type DataSourceOptions } from 'typeorm';
-import { Buch } from '../buch/entity/buch.entity.js';
-import { entities } from '../buch/entity/entities.js';
+import { Haustier } from '../haustier/entity/haustier.entity.js';
+import { entities } from '../haustier/entity/entities.js';
 import { RESOURCES_DIR, config } from './app.js';
 import { dbType } from './db.js';
 import { logLevel } from './logger.js';
@@ -60,11 +60,12 @@ if (db !== undefined) {
 }
 
 // "Optional Chaining" und "Nullish Coalescing" ab ES2020
-const database = (db?.name as string | undefined) ?? Buch.name.toLowerCase();
+const database =
+    (db?.name as string | undefined) ?? Haustier.name.toLowerCase();
 
 const host = (db?.host as string | undefined) ?? 'localhost';
 const username =
-    (db?.username as string | undefined) ?? Buch.name.toLowerCase();
+    (db?.username as string | undefined) ?? Haustier.name.toLowerCase();
 const pass = (db?.password as string | undefined) ?? 'p';
 const passAdmin = (db?.passwordAdmin as string | undefined) ?? 'p';
 

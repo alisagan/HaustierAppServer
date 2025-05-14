@@ -1,0 +1,116 @@
+@startuml Controller-Klasse
+
+interface Promise<T>
+
+package @nestjs/common {
+  class "@Controller" as Controller
+  hide Controller circle
+
+  class "@UseGuards" as UseGuards
+  hide UseGuards circle
+
+  class "@UseInterceptors" as UseInterceptors
+  hide UseInterceptors circle
+
+  class "@Post" as Post
+  hide Post circle
+
+  class "@Put" as Put
+  hide Put circle
+
+  class "@Delete" as Delete
+  hide Delete circle
+
+  class "@Req" as Req
+  hide Req circle
+
+  class "@Res" as Res
+  hide Res circle
+
+  class "@Param" as Param
+  hide Param circle
+
+  class "@Body" as Body
+  hide Body circle
+
+  class "@Headers" as Headers
+  hide Headers circle
+
+  class "@UploadFile" as UploadFile
+  hide UploadFile circle
+
+  UseInterceptors .[hidden].> Post
+  UseInterceptors .[hidden].> Put
+  UseInterceptors .[hidden].> Delete
+
+  Post .[hidden].> Req
+  Post .[hidden].> Res
+  Post .[hidden].> Param
+  Post .[hidden].> Body
+  Post .[hidden].> Headers
+  Post .[hidden].> UploadFile
+}
+
+package nest-keycloak-connect {
+  class AuthGuard
+
+  class "@Public" as Public
+  hide Public circle
+
+  class "@Roles" as Roles
+  hide Roles circle
+}
+
+package express {
+  class Request
+  class Response
+
+  Response .right[hidden].> Controller
+}
+
+package haustier {
+  package entity #FFFFFF {
+    class HaustierDTO <<entity>>
+
+    HaustierDTO .[hidden].> Promise
+    HaustierDTO .[hidden].> Request
+  }
+
+  package service {
+    class HaustierWriteService << control >>
+    class HaustierReadService << control >>
+  }
+
+  package rest #DDDDDD {
+    class HaustierWriteController << control >> << @Controller() >> << @UseGuards() >> << @UseInterceptors() >> {
+      + @Post() @Roles() async post(@Body() haustierDTO: HaustierDTO, @Req() req: Request,  @Res() res: Response): Promise<Response>
+      + @Post() @Public() async addFile(@Param() id: number, @UploadFile() file: Express.Multer.File, @Req req: Request, @Res res: Response): Promise<Response>
+      + @Put() @Roles() async put(@Body() haustierDTO: HaustierDTO, @Param() id: number, @Headers() version: string, @Res() res: Response): Promise<Response>
+      + @Delete() @Roles() async delete(@Param() id: number): Promise<void>
+    }
+
+    HaustierWriteController o--> "1" HaustierWriteService : service
+    HaustierWriteController o--> "1" HaustierReadService : readService
+    HaustierWriteController ..up> HaustierDTO
+
+    HaustierWriteController ..> Controller
+
+    HaustierWriteController .up.> AuthGuard
+    HaustierWriteController .up.> Roles
+    HaustierWriteController .up.> Public
+
+    HaustierWriteController ..> Request
+    HaustierWriteController ..> Response
+    HaustierWriteController ..> Promise
+
+    HaustierDTO .up[hidden].> Roles
+    HaustierWriteService .[hidden].> Request
+    HaustierWriteService .[hidden].> Promise
+  }
+}
+
+hide empty members
+
+footer (c) Alisa Ganter
+
+@enduml

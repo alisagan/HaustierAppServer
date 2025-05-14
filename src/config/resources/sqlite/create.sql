@@ -14,7 +14,7 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -- https://docs.python.org/dev/library/sqlite3.html#sqlite3-cli
--- sqlite3 buch.sqlite
+-- sqlite3 haustier.sqlite
 
 -- https://sqlite.org/lang_createtable.html
 -- https://sqlite.org/stricttables.html ab 3.37.0
@@ -24,35 +24,35 @@
 -- https://sqlite.org/lang_createindex.html
 -- https://stackoverflow.com/questions/37619526/how-can-i-change-the-default-sqlite-timezone
 
-CREATE TABLE IF NOT EXISTS buch (
+CREATE TABLE IF NOT EXISTS haustier (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     version        INTEGER NOT NULL DEFAULT 0,
-    isbn           TEXT NOT NULL UNIQUE,
-    rating         INTEGER NOT NULL CHECK (rating >= 0 AND rating <= 5),
+    name           TEXT NOT NULL UNIQUE,
+    alter          INTEGER NOT NULL CHECK (alter >= 0 AND alter <= 20),
     art            TEXT,
-    preis          REAL,
-    rabatt         REAL,
-    lieferbar      INTEGER NOT NULL CHECK (lieferbar = 0 OR lieferbar = 1) DEFAULT 0,
-    datum          TEXT,
-    homepage       TEXT,
+    gewicht        REAL,
+    groesse        REAL,
+    vermittelt     INTEGER NOT NULL CHECK (vermittelt = 0 OR vermittelt = 1) DEFAULT 0,
+    aufnahmedatum  TEXT,
+    rasse          TEXT,
     schlagwoerter  TEXT,
     erzeugt        TEXT NOT NULL,
     aktualisiert   TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS buch_isbn_idx ON buch(isbn);
+CREATE INDEX IF NOT EXISTS haustier_name_idx ON haustier(name);
 
-CREATE TABLE IF NOT EXISTS titel (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    titel       TEXT NOT NULL,
-    untertitel  TEXT,
-    buch_id     INTEGER NOT NULL UNIQUE REFERENCES buch
+CREATE TABLE IF NOT EXISTS beschreibung (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    beschreibung      TEXT NOT NULL,
+    haltungshinweise  TEXT,
+    haustier_id       INTEGER NOT NULL UNIQUE REFERENCES haustier
 );
 
 
-CREATE TABLE IF NOT EXISTS abbildung (
+CREATE TABLE IF NOT EXISTS foto (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     beschriftung    TEXT NOT NULL,
     content_type    TEXT NOT NULL,
-    buch_id         INTEGER NOT NULL REFERENCES buch
+    haustier_id     INTEGER NOT NULL REFERENCES haustier
 );
-CREATE INDEX IF NOT EXISTS abbildung_buch_id_idx ON abbildung(buch_id);
+CREATE INDEX IF NOT EXISTS foto_haustier_id_idx ON foto(haustier_id);

@@ -22,9 +22,9 @@ import {
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminModule } from './admin/admin.module.js';
-import { BuchModule } from './buch/buch.module.js';
-import { BuchGetController } from './buch/controller/buch-get.controller.js';
-import { BuchWriteController } from './buch/controller/buch-write.controller.js';
+import { HaustierModule } from './haustier/haustier.module.js';
+import { HaustierGetController } from './haustier/controller/haustier-get.controller.js';
+import { HaustierWriteController } from './haustier/controller/haustier-write.controller.js';
 import { DevModule } from './config/dev/dev.module.js';
 import { graphQlModuleOptions } from './config/graphql.js';
 import { typeOrmModuleOptions } from './config/typeormOptions.js';
@@ -35,7 +35,7 @@ import { KeycloakModule } from './security/keycloak/keycloak.module.js';
 @Module({
     imports: [
         AdminModule,
-        BuchModule,
+        HaustierModule,
         DevModule,
         GraphQLModule.forRoot<ApolloDriverConfig>(graphQlModuleOptions),
         LoggerModule,
@@ -48,8 +48,8 @@ export class AppModule implements NestModule {
         consumer
             .apply(RequestLoggerMiddleware)
             .forRoutes(
-                BuchGetController,
-                BuchWriteController,
+                HaustierGetController,
+                HaustierWriteController,
                 'auth',
                 'graphql',
             );

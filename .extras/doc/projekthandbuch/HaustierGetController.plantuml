@@ -1,0 +1,83 @@
+@startuml Controller-Klasse
+
+interface Promise<T>
+
+package @nestjs/common {
+  class "@Controller" as Controller
+  hide Controller circle
+
+  class "@Get" as Get
+  hide Get circle
+
+  class "@Req" as Req
+  hide Req circle
+
+  class "@Res" as Res
+  hide Res circle
+
+  class "@Param" as Param
+  hide Param circle
+
+  class "@Query" as Query
+  hide Query circle
+
+  class "@UseInterceptors" as UseInterceptors
+  hide UseInterceptors circle
+
+  class "@Headers" as Headers
+  hide Headers circle
+}
+
+package nest-keycloak-connect{
+  class "@Public" as Public
+  hide Public circle
+  Public .[hidden].> Controller
+}
+
+package express {
+  class Request
+  class Response
+  Response .[hidden].> Controller
+}
+
+package haustier {
+  package entity #FFFFFF {
+    class Haustier <<entity>>
+
+    Haustier .[hidden].> Promise
+    Haustier .[hidden].> Request
+  }
+
+  package service {
+    class HaustierReadService << control >>
+  }
+
+  package rest #DDDDDD {
+    HaustierQuery -up-|> Haustier
+
+    class HaustierGetController << control >> << @Controller() >> << @UseInterceptors() >> {
+      + @Get() @Public() async getById(@Param() id: number, @Req() req: Request, @Headers() version: string, @Res() res: Response): Promise<Response<Haustier | undefined>>
+      + @Get() @Public() async get(@Query() query: HaustierQuery, @Req() req: Request,  @Res() res: Response): Promise<Response<Haustier | undefined>>
+      + @Get() @Public() async getFileById(@Param() idStr: number, @Res() res: Response)
+    }
+
+    HaustierGetController o--> "1" HaustierReadService : service
+
+    HaustierGetController ..> Controller
+    HaustierGetController ..> Request
+    HaustierGetController ..> Response
+    HaustierGetController ..> Promise
+    HaustierGetController ..> Public
+    HaustierGetController .up.> HaustierQuery
+
+    HaustierReadService .[hidden].> Request
+    HaustierReadService .[hidden].> Promise
+    Response .[hidden].> Controller
+  }
+}
+
+hide empty members
+
+footer (c) Alisa Ganter
+
+@enduml
